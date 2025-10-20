@@ -28,7 +28,6 @@ def test_TMF8x01_get_distance():
       print("   Initialisation failed")
       sleep(0.5)
     print("   Initialisation done.")
-
     print("Software Version: ", end=" ")
     print(tof.get_software_version())
     print("Unique ID: %X"%tof.get_unique_id())
