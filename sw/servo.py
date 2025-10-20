@@ -25,21 +25,13 @@ def test_servo():
     servo = Servo(PWMPin=13)
 
     while True:
-        print("Setting angle to 0")
-        servo.set_angle(0)
-        sleep(2)
-        
         print("Setting angle to 90")
-        servo.set_angle(90)
-        sleep(2)
-        
-        print("Setting angle to 180")
-        servo.set_angle(180)
-        sleep(2)
+        servo.set_angle(0)
+        sleep(4)
+        print("Setting angle to 0")
+        servo.set_angle(190)
+        sleep(4)
 
-        print("Setting angle to 270")
-        servo.set_angle(270)
-        sleep(2)
 
 if __name__ == "__main__":
     test_servo()

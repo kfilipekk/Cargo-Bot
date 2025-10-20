@@ -17,7 +17,7 @@ pwmb.freq(1000)
 led.toggle()
 
 
-def RotateCW(duty):
+def MoveForward(duty):
     ina1.value(1)
     ina2.value(0)
     inb1.value(1)
@@ -26,11 +26,29 @@ def RotateCW(duty):
     pwma.duty_u16(duty_16)
     pwmb.duty_u16(duty_16)
 
-def RotateCCW(duty):
+def MoveBackward(duty):
     ina1.value(0)
     ina2.value(1)
     inb1.value(0)
     inb2.value(1)
+    duty_16 = int((duty*65536)/100)
+    pwma.duty_u16(duty_16)
+    pwmb.duty_u16(duty_16)
+
+def TurnRight(duty):
+    ina1.value(1)
+    ina2.value(0)
+    inb1.value(0)
+    inb2.value(1)
+    duty_16 = int((duty*65536)/100)
+    pwma.duty_u16(duty_16)
+    pwmb.duty_u16(duty_16)
+
+def TurnLeft(duty):
+    ina1.value(0)
+    ina2.value(1)
+    inb1.value(1)
+    inb2.value(0)
     duty_16 = int((duty*65536)/100)
     pwma.duty_u16(duty_16)
     pwmb.duty_u16(duty_16)
@@ -47,9 +65,9 @@ def StopMotor():
 while True:
     duty_cycle=float(input("Enter pwm duty cycle"))
     print (duty_cycle)
-    RotateCW(duty_cycle)
+    MoveForward(duty_cycle)
     sleep(5)
-    RotateCCW(duty_cycle)
+    MoveBackward(duty_cycle)
     sleep(5)
     StopMotor()
     sleep(1)
