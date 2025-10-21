@@ -23,6 +23,7 @@
 			"css",
 			"mpy",
 			"hex"
-		]
+		],
+		"micropico.syncFolder": ""
 	}
 }
