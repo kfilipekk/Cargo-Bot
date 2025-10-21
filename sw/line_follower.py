@@ -2,7 +2,7 @@ from machine import Pin
 from utime import sleep
 from sw import motor
 
-LINE_SENSOR_PINS = [10, 11, 12, 13]
+LINE_SENSOR_PINS = [2,3,4,5]
 TURN_DUTY_CYCLE = 70
 TURN_DURATION_S = 1
 

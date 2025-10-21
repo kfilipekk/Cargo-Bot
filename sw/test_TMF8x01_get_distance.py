@@ -1,14 +1,16 @@
+import sys
+sys.path.append('..')
 from utime import sleep
 from machine import Pin, SoftI2C, I2C
 
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8801, DFRobot_TMF8701
 
-def test_TMF8x01_get_distance():
+def test():
     # Both options work
     # i2c_bus = SoftI2C(sda=Pin(8), scl=Pin(9), freq=100000)  # I2C0 on GP8 & GP9
     i2c_bus = I2C(id=0, sda=Pin(16), scl=Pin(17), freq=100000) # I2C0 on GP8 & GP9
     #print(i2c_bus.scan()) # 65=0x41
-    assert len(i2c_bus.scan()) == 1 # This demo requires exactly one device
+    assert len(i2c_bus.scan()) == 3 # This demo requires exactly one device
 
 
     # Set the correct device

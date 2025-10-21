@@ -2,11 +2,11 @@ from machine import Pin, I2C
 from libs.VL53L0X.VL53L0X import VL53L0X
 from utime import sleep
 
-def test_vl53l0x():
+def test():
     # config I2C Bus
     i2c_bus = I2C(id=0, sda=Pin(16), scl=Pin(17))
     # print(i2c_bus.scan())  # Get the address (nb 41=0x29, 82=0x52)
-    
+
     # Setup vl53l0 object
     vl53l0 = VL53L0X(i2c_bus)
     vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
@@ -24,7 +24,7 @@ def test_vl53l0x():
             distance = vl53l0.read()
             print(f"Distance = {distance}mm")  # Check calibration!
             sleep(0.5)
-        
+
         # Stop device
         vl53l0.stop()
 
