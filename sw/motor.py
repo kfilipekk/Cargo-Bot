@@ -2,12 +2,12 @@ from machine import Pin, PWM
 from utime import sleep
 
 # This setup assumes a motor driver where PWM is applied directly to the input pins.
-# Motor A is on pins 8 and 4. Motor B is on pins 6 and 7.
+# Motor A is on pins 5 and 4. Motor B is on pins 6 and 7.
 
 # --- Pin Definitions ---
 led = Pin(25, Pin.OUT)
 # Motor A pins
-motor_a_in1 = Pin(8, Pin.OUT)
+motor_a_in1 = Pin(5, Pin.OUT)
 motor_a_in2 = Pin(4, Pin.OUT)
 # Motor B pins
 motor_b_in1 = Pin(6, Pin.OUT)
@@ -87,7 +87,7 @@ def StopMotor():
     This re-initializes them as simple output pins.
     """
     global motor_a_in1, motor_a_in2, motor_b_in1, motor_b_in2
-    motor_a_in1 = Pin(8, Pin.OUT, value=0)
+    motor_a_in1 = Pin(5, Pin.OUT, value=0)
     motor_a_in2 = Pin(4, Pin.OUT, value=0)
     motor_b_in1 = Pin(6, Pin.OUT, value=0)
     motor_b_in2 = Pin(7, Pin.OUT, value=0)
