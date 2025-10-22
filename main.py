@@ -12,7 +12,7 @@ from utime import sleep
 # test_vl53l0x.test()
 
 print("Moving forward for 2 seconds")
-motor.MoveForward(50)
+motor.MoveBackward(50)
 sleep(2)
 motor.StopMotor()
 print("Stopped")
