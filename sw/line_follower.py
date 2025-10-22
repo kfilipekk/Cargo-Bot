@@ -101,7 +101,6 @@ def follow_line_pid(kp=1.5, ki=0.01, kd=0.8):
 
     set_motor_speed(left_speed, 0, right_speed, 0)
 
-
 def follow_line_smooth():
     ## Smooth line following with gradual corrections
     position = get_line_position()
