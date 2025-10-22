@@ -53,33 +53,51 @@ def follow_line_basic():
         stop_motors()
 
 
-def follow_line_pid(kp=1.0, ki=0.0, kd=0.0):
-    ## PID-based line following for smoother control
+def follow_line_pid(kp=1.5, ki=0.01, kd=0.8):
+    ## PID-based line following with anti-windup and derivative filtering
     if not hasattr(follow_line_pid, 'last_error'):
         follow_line_pid.last_error = 0
         follow_line_pid.integral = 0
+        follow_line_pid.filtered_derivative = 0
 
     left, right = read_sensors()
 
+    ## Calculate error with weighted positions for smoother tracking
     if left == 0 and right == 0:
         error = 0
+        follow_line_pid.integral *= 0.9  ## Reduce integral when on line
     elif left == 1 and right == 0:
         error = -1
     elif left == 0 and right == 1:
         error = 1
     else:
+        ## Both sensors off line - maintain last direction but don't accumulate integral
         error = follow_line_pid.last_error
+        follow_line_pid.integral *= 0.5  ## Decay integral when lost
 
+    ## Anti-windup: limit integral term to prevent overshooting
     follow_line_pid.integral += error
-    derivative = error - follow_line_pid.last_error
-    correction = kp * error + ki * follow_line_pid.integral + kd * derivative
+    max_integral = 10
+    follow_line_pid.integral = max(-max_integral, min(max_integral, follow_line_pid.integral))
+
+    ## Derivative with low-pass filter to reduce noise
+    raw_derivative = error - follow_line_pid.last_error
+    alpha = 0.3  ## Filter coefficient (0-1, lower = more filtering)
+    follow_line_pid.filtered_derivative = alpha * raw_derivative + (1 - alpha) * follow_line_pid.filtered_derivative
+
+    ## Calculate PID correction
+    correction = kp * error + ki * follow_line_pid.integral + kd * follow_line_pid.filtered_derivative
     follow_line_pid.last_error = error
 
-    left_speed = int(BASE_SPEED + correction * 50)
-    right_speed = int(BASE_SPEED - correction * 50)
+    ## Apply correction with smoother scaling
+    correction_factor = 40  ## Reduced from 50 for gentler corrections
+    left_speed = int(BASE_SPEED + correction * correction_factor)
+    right_speed = int(BASE_SPEED - correction * correction_factor)
 
-    left_speed = max(0, min(255, left_speed))
-    right_speed = max(0, min(255, right_speed))
+    ## Clamp speeds with minimum speed to prevent stalling
+    min_speed = 60
+    left_speed = max(min_speed, min(255, left_speed))
+    right_speed = max(min_speed, min(255, right_speed))
 
     set_motor_speed(left_speed, 0, right_speed, 0)
 
@@ -148,7 +166,7 @@ def run_line_follower(mode='basic', debug=False):
             elif mode == 'smooth':
                 follow_line_smooth()
             elif mode == 'pid':
-                follow_line_pid(kp=1.2, ki=0.0, kd=0.1)
+                follow_line_pid(kp=1.5, ki=0.01, kd=0.8)
             else:
                 print(f"Unknown mode: {mode}")
                 break
