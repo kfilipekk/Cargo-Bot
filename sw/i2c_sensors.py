@@ -6,7 +6,7 @@ from libs.tiny_code_reader.tiny_code_reader import TinyCodeReader
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8701
 from libs.VL53L0X.VL53L0X import VL53L0X
 
-i2c_bus = I2C(id=0, scl=Pin(17), sda=Pin(16), freq=400000)  # I2C0 on GP16 & GP17
+i2c_bus = I2C(id=0, scl=Pin(17), sda=Pin(16), freq=400000)  ## I2C0 on GP16 & GP17
 
 def run_tiny_code_reader():
     tiny_code_reader = TinyCodeReader(i2c_bus)
