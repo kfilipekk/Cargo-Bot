@@ -7,7 +7,7 @@ class Servo:
         self.pwm.freq(50)
 
     def set_angle(self, angle):
-        # angle is 0 to 180
+        # angle is 0 to 270 for DS-M15S
         # pulse width from 500us to 2500us
         # 50Hz freq -> 20ms period
         # duty_u16 converts 0-65535 to 0-100% duty cycle
@@ -15,7 +15,9 @@ class Servo:
         # 2500us is 2500/20000 = 12.5% duty cycle. 0.125 * 65535 = 8192
         min_duty = 1638
         max_duty = 8192
-        duty = min_duty + (max_duty - min_duty) * (angle / 180)
+        max_angle = 270
+        angle = max(0, min(angle, max_angle))
+        duty = min_duty + (max_duty - min_duty) * (angle / max_angle)
         self.pwm.duty_u16(int(duty))
 
     def off(self):
@@ -29,7 +31,7 @@ def test_servo():
         servo.set_angle(0)
         sleep(4)
         print("Setting angle to 0")
-        servo.set_angle(190)
+        servo.set_angle(270)
         sleep(4)
 
 
