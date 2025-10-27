@@ -4,10 +4,10 @@ from .motor_functions import set_motor_speed, stop_motors
 from .constants import ROBOT_CONFIG
 
 ## Sensor Setup
-sensor_1 = Pin(11, Pin.IN, Pin.PULL_DOWN)  ## Leftmost
+sensor_1 = Pin(10, Pin.IN, Pin.PULL_DOWN)  ## Leftmost
 sensor_2 = Pin(8, Pin.IN, Pin.PULL_DOWN)  ## Centre-left
 sensor_3 = Pin(9, Pin.IN, Pin.PULL_DOWN)  ## Centre-right
-sensor_4 = Pin(10, Pin.IN, Pin.PULL_DOWN)  ## Rightmost
+sensor_4 = Pin(11, Pin.IN, Pin.PULL_DOWN)  ## Rightmost
 
 def read_all_sensors(): return list(sensor.value() for sensor in (sensor_1, sensor_2, sensor_3, sensor_4))
 
@@ -17,20 +17,15 @@ pid_state = {"last_error": 0.0,"integral": 0.0,"filtered_derivative": 0.0}
 def follow_line_pid():
     """PID-based line following with 4 sensors."""
     s = read_all_sensors()
-    # Error: -2 (far left) to +2 (far right), 0 is centered
     if not any(s):
         error = 0
         pid_state["integral"] *= 0.9
     elif s[1] and s[2]:
         error = 0
-    elif s[0]:
-        error = -2
-    elif s[1] and not s[2]:
+    elif s[1] == 0:
         error = -1
-    elif not s[1] and s[2]:
+    elif s[3] == 0:
         error = 1
-    elif s[3]:
-        error = 2
     else:
         error = pid_state["last_error"]
         pid_state["integral"] *= 0.5

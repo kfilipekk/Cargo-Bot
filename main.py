@@ -23,7 +23,7 @@ def reset_pid_state():
 
 def move_past_intersection():
     """Move forward to clear the intersection."""
-    motor_functions.move_forward(speed=255, duration_ms=300)
+    motor_functions.move_forward(speed=255, duration_ms=150)
     sleep(0.2)
 
 
@@ -84,7 +84,7 @@ def determine_turn_direction(sensor_state):
     Returns:
         "left", "right", or None if not an intersection
     """
-    if sensor_state[1] == 1 and sensor_state[3] == 0: ## [1, x, x, 0]
+    if sensor_state[0] == 1: ## [1, x, x, 0]
         return "left"
     elif sensor_state[1] == 0 and sensor_state[3] == 1: ## [0, x, x, 1]
         return "right"

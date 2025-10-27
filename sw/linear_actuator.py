@@ -7,10 +7,10 @@ class Actuator:
         self.pwm = PWM(Pin(PWMPin))  # set motor pwm pin
         self.pwm.freq(1000)  # set PWM frequency
         self.pwm.duty_u16(0)  # set duty cycle - 0=off
-           
+
     def set(self, dir, speed):
         self.mDir.value(dir)                     # forward = 0 reverse = 1 motor
-        self.pwm.duty_u16(int(65535)) 
+        self.pwm.duty_u16(int(65535))
 
 
 def test_actuator1():
@@ -18,11 +18,11 @@ def test_actuator1():
 
     while True:
         print("Extending quickly")
-        actuator1.set(dir = 0, speed=100)
+        actuator1.set(dir = 0, speed=50)
         sleep(5)  # nb we don't know when this has finished without another means
 
         print("Retracing slowly")
-        actuator1.set(dir=0, speed=100)
+        actuator1.set(dir=1, speed=50)
         sleep(10)  # nb we don't know when this has finished without another means
 
 
