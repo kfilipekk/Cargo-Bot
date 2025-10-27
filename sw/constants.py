@@ -1,22 +1,20 @@
-from dataclasses import dataclass
-
-@dataclass
 class RobotConfig:
-    BASE_SPEED: int = 255
-    TURN_SPEED: int = 100
-    CORRECTION_SPEED: int = 105
-    MIN_SPEED: int = 60
-    TURN_90_TIME_MS: int = 830
-    TURN_90_TIME_MS_CCW: int = 1500
-    LEFT_MOTOR_CORRECTION: float = 0.97
-    RIGHT_MOTOR_CORRECTION: float = 1.0
-    PID_KP: float = 25
-    PID_KI: float = 0.05
-    PID_KD: float = 10
-    PID_MAX_INTEGRAL: float = 50
-    PID_ALPHA: float = 0.3
-    PID_CORRECTION_FACTOR: float = 1
-    SMOOTH_LEFT_FACTOR: float = 0.85
-    SMOOTH_RIGHT_FACTOR: float = 1.0
+    def __init__(self):
+        self.BASE_SPEED = 255
+        self.TURN_SPEED = 100
+        self.CORRECTION_SPEED = 105
+        self.MIN_SPEED = 60
+        self.TURN_90_TIME_MS = 830
+        self.TURN_90_TIME_MS_CCW = 1500
+        self.LEFT_MOTOR_CORRECTION = 0.97
+        self.RIGHT_MOTOR_CORRECTION = 1.0
+        self.PID_KP = 90
+        self.PID_KI = 0.05
+        self.PID_KD = 35
+        self.PID_MAX_INTEGRAL = 50
+        self.PID_ALPHA = 0.3
+        self.PID_CORRECTION_FACTOR = 1.5
+        self.SMOOTH_LEFT_FACTOR = 0.85
+        self.SMOOTH_RIGHT_FACTOR = 1.0
 
 ROBOT_CONFIG = RobotConfig()
