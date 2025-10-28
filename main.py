@@ -15,6 +15,15 @@ turning_states = [
 ]
 
 
+    ##go on line, go straight until it reaches the  14 sensors.
+# If its a left or right turn, turn and then turn left/right.
+#  If they're both on continue going straight
+
+
+
+
+
+
 def reset_pid_state():
     """Reset PID controller state."""
     for key in line_follower.pid_state:
@@ -25,34 +34,6 @@ def move_past_intersection():
     """Move forward to clear the intersection."""
     motor_functions.move_forward(speed=255, duration_ms=150)
     sleep(0.2)
-
-
-def align_to_line(turn_direction="left", max_adjustments=50):
-    """Fine-tune robot position until both center sensors detect the line."""
-    motor_functions.stop_motors(); sleep(0.1)
-    current_state = line_follower.read_all_sensors()
-    print(f"After turn, sensors: {current_state}")
-    left_dir, right_dir = (0, 1) if turn_direction == "left" else (1, 0)
-    for adj in range(1, max_adjustments + 1):
-        current_state = line_follower.read_all_sensors()
-        if current_state[1] == 1 and current_state[2] == 1:
-            print(f"SUCCESS! Both middle sensors on line: {current_state}"); break
-        motor_functions.set_motor_speed(85, left_dir, 85, right_dir)
-        sleep(0.03)
-        current_state = line_follower.read_all_sensors(); motor_functions.stop_motors()
-        if current_state[1] == 1 and current_state[2] == 1:
-            print(f"SUCCESS! Both middle sensors on line: {current_state}"); break
-        sleep(0.04)
-        if adj % 5 == 0 or adj <= 3:
-            print(f"Adjusting {turn_direction}... sensors: {current_state} (attempt {adj})")
-    motor_functions.stop_motors(); sleep(0.1)
-    current_state = line_follower.read_all_sensors()
-    if current_state[1] == 1 and current_state[2] == 1:
-        print(f"FINAL CHECK: Both middle sensors on line: {current_state}")
-    else:
-        print(f"WARNING: Alignment incomplete. Final sensors: {current_state}")
-    sleep(0.2)
-
 
 def execute_turn(direction):
     """
@@ -86,7 +67,7 @@ def determine_turn_direction(sensor_state):
     """
     if sensor_state[0] == 1: ## [1, x, x, 0]
         return "left"
-    elif sensor_state[1] == 0 and sensor_state[3] == 1: ## [0, x, x, 1]
+    elif sensor_state[3] == 1: ## [0, x, x, 1]
         return "right"
     elif sensor_state in turning_states:
         return "left"  ## Default for other intersection types
@@ -119,6 +100,11 @@ def clear_intersection():
     print("Clearing intersection...")
     for _ in range(15):
         line_follower.run_line_follower(mode='pid')
+
+
+
+def move_from_start():
+
 
 
 if __name__ == "__main__":
