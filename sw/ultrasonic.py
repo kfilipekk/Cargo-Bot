@@ -31,7 +31,8 @@ while True:
         ultrasonic_distance()
         ultrasonic_distance.sleep(1)
 
-
+distance = ultrasonic_distance()
+print("Ultrasonic distance:", distance)
 
 
 
