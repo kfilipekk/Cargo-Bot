@@ -81,4 +81,4 @@ def run_line_follower(mode="pid", debug=False):
 
 if __name__ == "__main__":
     ## test_sensors()
-    run_line_follower(mode="basic", debug=True)
+    run_line_follower(mode="pid", debug=True)
