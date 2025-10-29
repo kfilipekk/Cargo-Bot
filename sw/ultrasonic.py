@@ -19,21 +19,18 @@ def ultrasonic_distance():
     while pulse_in.value() == 1:
         signal_high = utime.ticks_us() # measures how long signal is on for
 
-    time_passed = signal_high - signal_low
+    time_passed = signal_high - signal_low # type: ignore
 
     distance = (time_passed * 0.0343)/2
 
-    return distance
-
     print("distance (cm) = ", distance)
 
-    while True: ## should this be indented?
+    return distance
+
+while True:
         ultrasonic_distance()
         ultrasonic_distance.sleep(1)
 
-def box_sensing():
-    if ultrasonic_distance() < # distance threshold:
-        return box_sensing == True
 
 
 

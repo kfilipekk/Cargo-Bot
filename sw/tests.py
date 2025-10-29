@@ -1,5 +1,6 @@
 from time import sleep
 from machine import I2C, Pin
+from sw.ultrasonic import ultrasonic_distance
 
 from libs.tiny_code_reader.tiny_code_reader import TinyCodeReader
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8701
@@ -19,3 +20,10 @@ def test_line_sensors():
 
 if __name__ == "__main__":
     testi2c()
+
+def test_ultrasonic_distance():
+    distance = ultrasonic_distance()
+    print("Ultrasonic distance:", distance)
+    assert distance > 0
+
+test_ultrasonic_distance()
