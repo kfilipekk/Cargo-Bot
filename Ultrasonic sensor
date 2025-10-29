@@ -23,8 +23,6 @@ def ultrasonic_distance():
 
     distance = (time_passed * 0.0343)/2
 
-    return distance
-
     print("distance (cm) = ", distance)
 
     while True: ## should this be indented?
@@ -32,13 +30,7 @@ def ultrasonic_distance():
         ultrasonic_distance.sleep(1)
 
 def box_sensing():
-    if ultrasonic_distance() < # distance threshold:
-        return box_sensing == True
-
-
-
-
-
-
+    if distance < # distance threshold:
+        return box_sensing = True
 
 
