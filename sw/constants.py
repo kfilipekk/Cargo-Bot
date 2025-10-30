@@ -11,13 +11,13 @@ class RobotConfig:
         self.TURN_90_TIME_MS_CCW = 1500
 
         ## Motor corrections
-        self.LEFT_MOTOR_CORRECTION = 0.97
-        self.RIGHT_MOTOR_CORRECTION = 1.0
+        self.LEFT_MOTOR_CORRECTION = 1
+        self.RIGHT_MOTOR_CORRECTION = 0.7
 
         ## PID parameters
         self.PID_KP = 90
         self.PID_KI = 0.05
-        self.PID_KD = 35
+        self.PID_KD = 0.0125
         self.PID_MAX_INTEGRAL = 50
         self.PID_ALPHA = 0.3
         self.PID_CORRECTION_FACTOR = 1.5
