@@ -30,7 +30,7 @@ def turn_until_line_on_sensors(sensor_read_func, turn_left=True, speed=None, tim
         speed = ROBOT_CONFIG.BASE_SPEED
     left_dir, right_dir = (0, 1) if turn_left else (1, 0)
     start = time.ticks_ms()
-    # Start continuous turn
+    ## Start continuous turn
     set_motor_speed(speed, left_dir, speed, right_dir)
     try:
         while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
@@ -45,7 +45,7 @@ def turn_until_line_on_sensors(sensor_read_func, turn_left=True, speed=None, tim
     return False
 
 def set_motor_speed(left_speed, left_dir, right_speed, right_dir):
-    # Apply correction, min/max, and set direction and PWM for both motors
+    ## Apply correction, min/max, and set direction and PWM for both motors
     for side, speed, dir_pin, pwm, corr in [
         ("left", left_speed, left_dir_pin, left_pwm, ROBOT_CONFIG.LEFT_MOTOR_CORRECTION),
         ("right", right_speed, right_dir_pin, right_pwm, ROBOT_CONFIG.RIGHT_MOTOR_CORRECTION)
