@@ -2,21 +2,29 @@ import time
 from machine import Pin
 from .motor_functions import set_motor_speed, stop_motors
 from .constants import ROBOT_CONFIG
-
-## Sensor Setup
-sensor_1 = Pin(10, Pin.IN, Pin.PULL_DOWN)  ## Leftmost
-sensor_2 = Pin(8, Pin.IN, Pin.PULL_DOWN)  ## Centre-left
-sensor_3 = Pin(9, Pin.IN, Pin.PULL_DOWN)  ## Centre-right
-sensor_4 = Pin(11, Pin.IN, Pin.PULL_DOWN)  ## Rightmost
-
-def read_all_sensors(): return list(sensor.value() for sensor in (sensor_1, sensor_2, sensor_3, sensor_4))
+from .sensors import sensor_state
 
 ## PID State (global dictionary to store state across function calls)
 pid_state = {"last_error": 0.0,"integral": 0.0,"filtered_derivative": 0.0}
 
+def follow_line_basic():
+    """Basic line following using only center sensors s[1] and s[2]."""
+    s = sensor_state
+    base_speed = ROBOT_CONFIG.BASE_SPEED
+    turn_speed = ROBOT_CONFIG.TURN_SPEED
+
+    if s[1] and s[2]:
+        set_motor_speed(base_speed, 1, base_speed, 1)
+    elif s[1]:
+        set_motor_speed(turn_speed, 1, base_speed, 1)
+    elif s[2]:
+        set_motor_speed(base_speed, 1, turn_speed, 1)
+    else:
+        stop_motors()
+
 def follow_line_pid():
     """PID-based line following with 4 sensors."""
-    s = read_all_sensors()
+    s = sensor_state
     if not any(s):
         error = 0
         pid_state["integral"] *= 0.9
@@ -52,10 +60,12 @@ def run_line_follower(mode="pid", debug=False):
         while True:
             if mode == "pid":
                 follow_line_pid()
+            elif mode == "basic":
+                follow_line_basic()
             else:
                 print(f"Unknown mode: {mode}")
             if debug:
-                vals = read_all_sensors()
+                vals = sensor_state
                 print(f"Sensors: {' '.join(map(str, vals))} | State: {vals}")
             time.sleep_ms(10)
     except KeyboardInterrupt:

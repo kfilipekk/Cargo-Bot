@@ -1,69 +1,53 @@
-"""Unified sensor interface for robot navigation and cargo detection."""
+from time import sleep
 from machine import I2C, Pin
-from utime import sleep, sleep_us, ticks_us
+import _thread
+import utime
+
 from libs.tiny_code_reader.tiny_code_reader import TinyCodeReader
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8701
 from libs.VL53L0X.VL53L0X import VL53L0X
 
-## Ultrasonic sensors (side-mounted for box detection)
-ultrasonic_trigger = Pin(15, Pin.OUT)
-ultrasonic_echo = Pin(14, Pin.IN)
+i2c_bus = I2C(id=0, scl=Pin(17), sda=Pin(16), freq=400000)  ## I2C0 on GP16 & GP17
 
-## I2C bus shared by all sensors
-i2c = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
+def get_tiny_code():
+    tiny_code_reader = TinyCodeReader(i2c_bus)
+    sleep(TinyCodeReader.TINY_CODE_READER_DELAY)
+    return str(tiny_code_reader.poll())
 
-## QR code reader
-qr_reader = TinyCodeReader(i2c)
+def get_tmf8701_distance():
+    tof = DFRobot_TMF8701(i2c_bus=i2c_bus)
+    if tof.begin() != 0:
+        return 9999
+    tof.start_measurement(calib_m=tof.eMODE_NO_CALIB, mode=tof.ePROXIMITY)
+    if tof.is_data_ready():
+        return tof.get_distance_mm()
+    return 9999
 
-## Distance sensors
-tmf8701 = DFRobot_TMF8701(i2c_bus=i2c)  ## Verify box pickup (front-mounted)
-vl53l0x = VL53L0X(i2c)  ## Short range high precision (for positioning at bays)
-
-## Initialize TMF8701
-while tmf8701.begin() != 0:
-    sleep(0.1)
-tmf8701.start_measurement(calib_m=tmf8701.eMODE_NO_CALIB, mode=tmf8701.ePROXIMITY)
-
-## Initialize VL53L0X
-vl53l0x.set_Vcsel_pulse_period(vl53l0x.vcsel_period_type[0], 18)
-vl53l0x.set_Vcsel_pulse_period(vl53l0x.vcsel_period_type[1], 14)
-
-def check_box_present(threshold_cm=20):
-    """Check if a box is present using side-mounted ultrasonic sensors."""
-    ultrasonic_trigger.low()
-    sleep_us(2)
-    ultrasonic_trigger.high()
-    sleep_us(10)
-    ultrasonic_trigger.low()
-
-    signal_low = signal_high = 0
-    while ultrasonic_echo.value() == 0:
-        signal_low = ticks_us()
-    while ultrasonic_echo.value() == 1:
-        signal_high = ticks_us()
-
-    distance_cm = ((signal_high - signal_low) * 0.0343) / 2
-    return distance_cm < threshold_cm
-
-def verify_box_picked_up(threshold_mm=100):
-    """Verify box has been picked up using front-mounted TMF8701 sensor."""
-    if tmf8701.is_data_ready():
-        distance = tmf8701.get_distance_mm()
-        return distance < threshold_mm and distance > 0
-    return False
-
-def get_bay_distance():
-    """Get precise distance to cargo bay wall using VL53L0X sensor."""
-    vl53l0x.start()
-    distance = vl53l0x.read()
-    vl53l0x.stop()
+def get_vl53l0x_distance():
+    vl53l0 = VL53L0X(i2c_bus)
+    vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[0], 18)
+    vl53l0.set_Vcsel_pulse_period(vl53l0.vcsel_period_type[1], 14)
+    vl53l0.start()
+    distance = vl53l0.read()
+    vl53l0.stop()
     return distance
 
-def scan_qr_code(timeout_attempts=10):
-    """Scan QR code and return the decoded value."""
-    for _ in range(timeout_attempts):
-        code = qr_reader.poll()
-        if code:
-            return code.strip()
-        sleep(TinyCodeReader.TINY_CODE_READER_DELAY)
-    return None
+
+## Sensor Setup
+sensor_1 = Pin(10, Pin.IN, Pin.PULL_DOWN)  ## Leftmost
+sensor_2 = Pin(9, Pin.IN, Pin.PULL_DOWN)  ## Centre-left
+sensor_3 = Pin(8, Pin.IN, Pin.PULL_DOWN)  ## Centre-right
+sensor_4 = Pin(11, Pin.IN, Pin.PULL_DOWN)  ## Rightmost
+
+sensor_state = [0, 0, 0, 0]
+
+def read_all_sensors(): return list(sensor.value() for sensor in (sensor_1, sensor_2, sensor_3, sensor_4))
+
+def sensor_update_thread():
+    """Background thread to continuously update sensor state."""
+    global sensor_state
+    while True:
+        sensor_state = read_all_sensors()
+        utime.sleep(0.01)
+
+_thread.start_new_thread(sensor_update_thread, ())
