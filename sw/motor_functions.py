@@ -24,17 +24,54 @@ def turn_until_line_on_sensors(direction, speed=255, timeout_ms=3000):
     start = time.ticks_ms()
     ## Start continuous turn
     set_motor_speed(speed, left_dir, speed, right_dir)
+
+    # Check initial state - if either sensor is on the line, wait until both are OFF
+    sensor_state = sensors.read_all_sensors()
+    need_to_leave_line = sensor_state[1] == 1 or sensor_state[2] == 1
+
+    sensors_off_line = not need_to_leave_line  # If neither sensor on line initially, skip this step
+
     try:
-        while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
-            sensor_state = sensors.read_all_sensors()
-            if sensor_state[1] == 1 and sensor_state[2] == 1:
-                stop_motors()
-                return True
-            # small sleep to yield CPU and avoid busy-wait
-            time.sleep_ms(10)
+        # First, if we started on a line, wait until both sensors are OFF the line
+        if need_to_leave_line:
+            while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
+                sensor_state = sensors.read_all_sensors()
+                if sensor_state[1] == 0 and sensor_state[2] == 0:
+                    sensors_off_line = True
+                    break
+                time.sleep_ms(10)
+
+        # Then, wait until both sensors are back ON the line
+        if sensors_off_line:
+            while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
+                sensor_state = sensors.read_all_sensors()
+                if sensor_state[1] == 1 and sensor_state[2] == 1:
+                    stop_motors()
+                    return True
+                time.sleep_ms(10)
     finally:
         stop_motors()
     return False
+
+
+def turn(angle=90, clockwise=True, speed=None):
+    """Turn clockwise (right) or counterclockwise (left)"""
+    speed = speed if speed is not None else ROBOT_CONFIG.BASE_SPEED
+    duration = int(ROBOT_CONFIG.TURN_90_TIME_MS * angle / 90) if clockwise else int(ROBOT_CONFIG.TURN_90_TIME_MS_CCW * angle / 90)
+    set_motor_speed(speed, 1 if clockwise else 0, speed, 0 if clockwise else 1)
+    time.sleep_ms(duration)
+    stop_motors()
+
+
+def turn_right(angle=90, speed=None):
+    turn(angle, True, speed)
+
+
+def turn_left(angle=90, speed=None):
+    turn(angle, False, speed)
+
+
+
 
 def set_motor_speed(left_speed, left_dir, right_speed, right_dir):
     ## Apply correction, min/max, and set direction and PWM for both motors
@@ -62,4 +99,12 @@ def move(speed=255, direction=1, duration_ms=None):
         stop_motors()
 
 if __name__ == "__main__":
+    print("Testing motor functions...")
+    print("Turning 90 clockwise...")
+    turn_right(90)
+    time.sleep(2)
+    print("Turning 90 counterclockwise...")
+    turn_left(90)
+    time.sleep(2)
+    print("Test complete!")
     stop_motors()
