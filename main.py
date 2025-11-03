@@ -1,250 +1,232 @@
-"""Cargo delivery robot - main navigation and task execution."""
-from sw import motor_functions, line_follower, map, sensors
-from sw.linear_actuator import Actuator
-from sw.constants import ROBOT_CONFIG
-from utime import sleep
 
-## Intersection detection states
-TURNING_STATES = [[1,1,1,1], [1,0,0,1], [1,1,1,0], [0,1,1,1], [1,0,0,0], [0,0,0,1]]
+from sw import motor_functions, line_follower, sensors, leds
+from sw.sensors import sensor_state
+import utime
+import _thread
+from machine import Pin
 
-## Robot state
-intersection_count = 0
-current_side = None
-has_cargo = False
-actuator = Actuator(dirPin=0, PWMPin=1)
+utime.sleep(0.2)
 
-def navigate_to_main_line():
-    """Move from start position to main line and turn left."""
-    print("Finding main line...")
-    motor_functions.move_forward(speed=255)
 
-    ## Wait for outer sensors to detect first line
-    while True:
-        state = line_follower.read_all_sensors()
-        if state[0] == 1 and state[3] == 1:
-            print("Main line reached")
-            break
-
-    ## Follow line until turn point (second intersection)
-    while True:
-        line_follower.run_line_follower(mode='pid', debug=False)
-        state = line_follower.read_all_sensors()
-        if state[0] == 1 and state[3] == 1:
-            break
-
-    print("Turning left onto main path")
-    motor_functions.turn_until_line_on_sensors(line_follower.read_all_sensors, turn_left=True)
-    clear_intersection()
-
-def follow_to_next_intersection():
-    """Follow line until next intersection is detected."""
-    extended_loss_count = 0
-
-    while True:
-        state = line_follower.read_all_sensors()
-
-        ## Check for intersection
-        if state in TURNING_STATES:
-            return state
-
-        ## Monitor for extended line loss
-        if not any(state):
-            extended_loss_count += 1
-            if extended_loss_count > ROBOT_CONFIG.LINE_LOSS_THRESHOLD:
-                print(f"Extended line loss detected (count: {extended_loss_count})")
-                if not recover_line():
-                    ## Critical failure - stop robot
-                    motor_functions.stop_motors()
-                    raise Exception("CRITICAL: Unable to recover line")
-                extended_loss_count = 0
-        else:
-            extended_loss_count = 0
-
-        line_follower.run_line_follower(mode='pid', debug=False)
-
-def clear_intersection():
-    """Move forward to clear the intersection area."""
-    for _ in range(15):
-        line_follower.run_line_follower(mode='pid')
-
-def reset_pid():
-    """Reset PID state to prevent overshoot."""
+def execute_turn(direction):
+    print(f"\n[Turn] Executing turn: {direction}")
     for key in line_follower.pid_state:
-        line_follower.pid_state[key] = 0.0
+        if key != "turn_end_time":
+            line_follower.pid_state[key] = 0.0
+    motor_functions.turn_until_line_on_sensors(direction)
+    # Mark the time when turn completes for post-turn boost
+    line_follower.pid_state["turn_end_time"] = utime.ticks_ms()
+    print(f"[Turn] Turn {direction} complete")
 
-def recover_line():
-    """Emergency line recovery when completely lost."""
-    print("WARNING: Line lost! Executing recovery...")
-    reset_pid()
+    # Post-turn recovery: only if one center sensor is off after turn
+    utime.sleep_ms(20)  # Brief settle time
 
-    ## Try backing up slightly and searching
-    motor_functions.move_backward(speed=150, duration_ms=ROBOT_CONFIG.RECOVERY_BACKUP_MS)
-    sleep(0.1)
-
-    ## Search left then right
-    for direction in ['left', 'right']:
+    # Check if we need recovery (one center sensor off, one on = bad angle)
+    if sensor_state[1] == 1 and sensor_state[2] == 0:
+        # Right sensor off, turn right sharply
+        print("[Recovery] Right sensor off line, correcting right...")
+        recovery_start = utime.ticks_ms()
+        while utime.ticks_diff(utime.ticks_ms(), recovery_start) < 200:
+            if sensor_state[1] == 1 and sensor_state[2] == 1:
+                print("[Recovery] Line recovered")
+                break
+            motor_functions.set_motor_speed(255, 1, 255, 0)  # Sharp right turn
+            utime.sleep_ms(10)
         motor_functions.stop_motors()
-        sleep(0.05)
+    elif sensor_state[1] == 0 and sensor_state[2] == 1:
+        # Left sensor off, turn left sharply
+        print("[Recovery] Left sensor off line, correcting left...")
+        recovery_start = utime.ticks_ms()
+        while utime.ticks_diff(utime.ticks_ms(), recovery_start) < 200:
+            if sensor_state[1] == 1 and sensor_state[2] == 1:
+                print("[Recovery] Line recovered")
+                break
+            motor_functions.set_motor_speed(255, 0, 255, 1)  # Sharp left turn
+            utime.sleep_ms(10)
+        motor_functions.stop_motors()
+    # If both center sensors are on (or both off), trust the PID boost to handle it
 
-        ## Small search turn
-        speed = ROBOT_CONFIG.RECOVERY_SEARCH_SPEED
-        if direction == 'left':
-            motor_functions.set_motor_speed(speed, 0, speed, 1)
-        else:
-            motor_functions.set_motor_speed(speed, 1, speed, 0)
 
-        ## Check for line during search
-        for _ in range(ROBOT_CONFIG.RECOVERY_SEARCH_STEPS):
-            state = line_follower.read_all_sensors()
-            if any(state):
-                print(f"Line recovered! Sensor state: {state}")
-                motor_functions.stop_motors()
-                reset_pid()
-                return True
-            sleep(0.02)
+def follow_line_until_intersections(target_count, sensor_index=0, debounce_ms=200):
+    count = 0
+    start_time = utime.ticks_ms()
 
+    while count != target_count:
+        line_follower.follow_line_pid()
+        if sensor_state[sensor_index] == 1 and utime.ticks_ms() - start_time > debounce_ms:
+            count += 1
+            print(f"\n[Navigation] Passed intersection {count}/{target_count}")
+            start_time = utime.ticks_ms()
+
+    return count
+
+
+def follow_line_for_duration(duration_ms):
+    """Follow the line for a specified duration in milliseconds"""
+    start_time = utime.ticks_ms()
+    while utime.ticks_diff(utime.ticks_ms(), start_time) < duration_ms:
+        line_follower.follow_line_pid()
+
+
+def collect_box():
+    print("\n[Collect] Approaching box...")
+    distance_to_box = sensors.get_tmf8701_distance()
+    code = sensors.get_tiny_code().split(",")
+    row = code[2]
+    print(f"\n[Collect] QR Code: {code}, Target row: {row}")
+
+    while distance_to_box is not None and distance_to_box > 0:
+        line_follower.run_line_follower(mode='pid', debug=False)
+
+    print("\n[Collect] Box reached, activating lift mechanism")
+    ## Lift up mechanism?
+    print("\n[Collect] Turning left 90 degrees")
+    motor_functions.turn_left(90)
+    execute_turn("left")
+
+    print("\n[Collect] Turning around, heading back...")
+    while sensor_state[0] != 1 and sensor_state[3] != 1:
+        line_follower.run_line_follower(mode='pid', debug=False)
     motor_functions.stop_motors()
-    print("ERROR: Line recovery failed")
-    return False
+    print("\n[Collect] Collection complete")
+    return row
 
-def turn_to_spot(turn_left):
-    """Turn off main line to cargo/bay spot."""
-    motor_functions.move_forward(speed=255, duration_ms=150)
-    sleep(0.2)
-    reset_pid()
-    motor_functions.turn_until_line_on_sensors(line_follower.read_all_sensors, turn_left=turn_left)
-    clear_intersection()
 
-def check_and_pickup_cargo():
-    """Check for cargo at current location and pick it up if present."""
-    global has_cargo
 
-    if sensors.check_box_present():
-        print("Box detected! Scanning QR code...")
-        qr_code = sensors.scan_qr_code()
-
-        if qr_code:
-            print(f"QR Code: {qr_code}")
-            rack, level, bay = map.parse_qr_code(qr_code)
-
-            if rack and level and bay:
-                print(f"Destination: Rack {rack}, {level}, Bay {bay}")
-                ## Lift box with actuator
-                actuator.set(dir=1, speed=100)
-                sleep(1)
-
-                ## Verify box has been picked up using TMF8701
-                if sensors.verify_box_picked_up():
-                    print("Box pickup confirmed")
-                    has_cargo = True
-                    return rack, level, bay
-                else:
-                    print("Warning: Box pickup not confirmed")
-                    has_cargo = False
-
-    print("No box found")
-    return None, None, None
-
-def navigate_to_bay(target_intersection, target_side):
-    """Navigate from current position to target bay intersection."""
-    global intersection_count, current_side
-
-    ## Return to main line
-    motor_functions.turn_until_line_on_sensors(line_follower.read_all_sensors, turn_left=False)
-    clear_intersection()
-
-    ## Switch to Rack B if needed
-    if current_side != target_side and target_side == map.RACK_B_SIDE:
-        print(f"Switching from {current_side} to {target_side}")
-        while intersection_count < map.CARGO_SPOT_1_RIGHT - 1:
-            follow_to_next_intersection()
-            intersection_count += 1
-            print(f"Passed intersection {intersection_count}")
-            clear_intersection()
-        current_side = target_side
-
-    ## Navigate to target bay
-    while intersection_count < target_intersection:
-        follow_to_next_intersection()
-        intersection_count += 1
-        print(f"Passed intersection {intersection_count}")
-        clear_intersection()
-
-def deliver_cargo(rack, level, target_bay):
-    """Navigate to target bay and deliver cargo."""
-    global has_cargo
-
-    target_intersection = map.get_bay_intersection(rack, target_bay)
-    if target_intersection is None:
-        print(f"Error: Invalid rack {rack} or bay {target_bay}")
-        return
-
-    print(f"Navigating to Rack {rack}, Bay {target_bay} (intersection {target_intersection})")
-    navigate_to_bay(target_intersection, map.get_side_from_rack(rack))
-
-    ## Turn into bay
-    print(f"Arrived at Rack {rack} Bay {target_bay}. Turning in...")
-    turn_to_spot(current_side == map.RACK_A_SIDE)
-
-    ## Use precision sensor to position at correct distance
-    distance = sensors.get_bay_distance()
-    print(f"Bay distance: {distance}mm")
-
-    ## Deliver cargo at appropriate height
-    if level == 'Upper':
-        actuator.set(dir=1, speed=100)
-        sleep(2)
-
-    actuator.set(dir=0, speed=100)
-    sleep(1)
-    has_cargo = False
-    print("Cargo delivered!")
-
-    ## Return to main line
-    print("Returning to main line...")
-    motor_functions.turn_until_line_on_sensors(line_follower.read_all_sensors, turn_left=False)
-    clear_intersection()
 
 def main():
-    """Main cargo delivery loop."""
-    global intersection_count, current_side
+    print("\n=== Starting main routine ===")
+    utime.sleep(0.5)
 
-    sleep(2)
-    print("Starting cargo delivery robot...")
+    # Point 1
+    follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
+    execute_turn("left")
 
-    navigate_to_main_line()
-    current_side = map.RACK_A_SIDE
-    intersection_count = 0
+    # Point 2
+    follow_line_until_intersections(1, sensor_index=0, debounce_ms=200)
+    leds.turn_on_flashing_led()
 
-    while True:
-        follow_to_next_intersection()
-        intersection_count += 1
-        location = map.INTERSECTION_MAP.get(intersection_count, f"intersection_{intersection_count}")
-        print(f"\nReached: {location} (#{intersection_count})")
+    # Point 3
+    execute_turn("left")
+    print("\n[Point 3] Fine-tuning turn left 6 degrees")
+    motor_functions.turn_left(6)
+    print("\n[Point 3] Checking for box at Point 3...")
 
-        ## Check if this is a cargo spot
-        if 'cargo' in location:
-            turn_to_spot(current_side == map.RACK_A_SIDE)
-            rack, level, bay = check_and_pickup_cargo()
+    distance_to_box = sensors.get_tmf8701_distance()
+    print(f"\n[Point 3] Distance to box: {distance_to_box}mm")
+    if distance_to_box is not None and distance_to_box < 100:
+        print("\n[Point 3] Box detected! Collecting...")
+        row = collect_box()
+        print(f"\n[Point 3] Box collected, target row: {row}")
+        motor_functions.move(speed=255, direction=0, duration_ms=1000)
+        execute_turn("left")
+        while sensor_state[0] != 1:
+            line_follower.follow_line_pid()
+        execute_turn("right")
 
-            if rack and level and bay:
-                deliver_cargo(rack, level, bay)
-                ## After delivery, already returned to main line
-            else:
-                ## No cargo, return to main line
-                motor_functions.turn_until_line_on_sensors(line_follower.read_all_sensors, turn_left=False)
-                clear_intersection()
+        print(f"\n[Point 3] Navigating to row {row}...")
+        follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+        execute_turn("right")
+        motor_functions.move(speed=255, direction=1, duration_ms=500)
 
-        ## Switch sides at the end of Rack A
-        elif intersection_count == map.RACK_A_BAY_6:
-            print("Reached end of Rack A, continuing to Rack B")
-            current_side = map.RACK_B_SIDE
-            clear_intersection()
 
-        ## Continue past non-cargo intersections
-        else:
-            clear_intersection()
+
+
+    print("\n[Point 3->4] Moving to Point 4...")
+    print("\n[Point 3->4] Turning right 40 degrees")
+    execute_turn("right")
+    follow_line_for_duration(300)
+    while sensor_state[0] != 1:
+        line_follower.follow_line_pid()
+
+
+    # Point 4
+    print("\n[Point 4] Checking for box at Point 4...")
+    execute_turn("left")
+    motor_functions.turn_left(5)
+    distance_to_box = sensors.get_tmf8701_distance()
+    print(f"\n[Point 4] Distance to box: {distance_to_box}mm")
+    if distance_to_box is not None and distance_to_box < 100:
+        print("\n[Point 4] Box detected! Collecting...")
+        collect_box()
+
+    # If no boxes on the left, check right side
+    print("\n[Navigation] No boxes on left, checking right side...")
+    execute_turn("left")
+    follow_line_for_duration(500)
+    follow_line_until_intersections(3, sensor_index=3, debounce_ms=300)
+
+
+
+
+
+    # Point 5
+    print("\n[Point 5] Checking for box at Point 5...")
+    execute_turn("right")
+    motor_functions.turn_right(5)
+    distance_to_box = sensors.get_tmf8701_distance()
+    print(f"\n[Point 5] Distance to box: {distance_to_box}mm")
+    if distance_to_box is not None and distance_to_box < 200:
+        print("\n[Point 5] Box detected! Collecting...")
+        collect_box()
+
+    print("\n[Point 5->6] Moving to Point 6...")
+    execute_turn("left")
+    follow_line_for_duration(300)
+    while sensor_state[3] != 1:
+        line_follower.follow_line_pid()
+
+    # Point 6
+    print("\n[Point 6] Checking for box at Point 6...")
+    execute_turn("right")
+    distance_to_box = sensors.get_tmf8701_distance()
+    print(f"\n[Point 6] Distance to box: {distance_to_box}mm")
+    if distance_to_box is not None and distance_to_box < 200:
+        print("\n[Point 6] Box detected! Collecting...")
+        collect_box()
+
+    execute_turn("right")
+    follow_line_for_duration(500)
+
+    # No boxes found, return to start
+    print("\n[Return] No boxes found, returning to start...")
+    follow_line_until_intersections(2, sensor_index=0, debounce_ms=300)
+    execute_turn("left")
+    print("\n=== Routine complete ===")
+
 
 if __name__ == "__main__":
-    main()
+    utime.sleep(0.4)
+    print("Hello from main.py!")
+    leds.turn_off_flashing_led()
+    print("Flashing stopped")
 
+    button_pin = 28
+    button = Pin(button_pin, Pin.IN, Pin.PULL_DOWN)
+
+    # Start the sensor update thread
+    _thread.start_new_thread(sensors.sensor_update_thread, ())
+    utime.sleep(2)
+
+    # Safety parameters - set MAX_RUNTIME_MS to limit run time (None = run indefinitely)
+    MAX_RUNTIME_MS = 20000
+    start_ms = utime.ticks_ms()
+
+    try:
+        while True:
+            if button.value() == 1:
+                main()
+
+            # Enforce optional runtime limit
+            if MAX_RUNTIME_MS is not None and utime.ticks_diff(utime.ticks_ms(), start_ms) > MAX_RUNTIME_MS:
+                print("Max runtime reached, exiting main loop.")
+                break
+    except KeyboardInterrupt:
+        print("Interrupted by user (KeyboardInterrupt). Stopping.")
+        leds.turn_off_flashing_led()
+    finally:
+        # Ensure motors are stopped when exiting
+        try:
+            motor_functions.stop_motors()
+        except Exception:
+            pass

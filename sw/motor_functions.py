@@ -2,6 +2,7 @@
 import time
 from machine import Pin, PWM
 from sw.constants import ROBOT_CONFIG
+from sw import sensors
 
 LEFT_MOTOR_PWM_PIN = 5
 LEFT_MOTOR_DIR_PIN = 4
@@ -17,67 +18,40 @@ left_pwm.freq(1000)
 right_pwm = PWM(Pin(RIGHT_MOTOR_PWM_PIN))
 right_pwm.freq(1000)
 
-def turn_until_line_on_sensors(sensor_read_func, turn_left=True, speed=None, timeout_ms=3000):
-    """
-    Turn continuously until both center sensors (indices 1 and 2) detect the line.
-    sensor_read_func: callable returning (s1, s2, s3, s4)
-    turn_left: True to turn left, False to turn right
-    speed: motor speed for turning; defaults to ROBOT_CONFIG.BASE_SPEED
-    timeout_ms: safety timeout in milliseconds
-    Returns True if line detected, False on timeout.
-    """
-    if speed is None:
-        speed = ROBOT_CONFIG.BASE_SPEED
-    left_dir, right_dir = (0, 1) if turn_left else (1, 0)
+def turn_until_line_on_sensors(direction, speed=255, timeout_ms=3000):
+
+    left_dir, right_dir = (0, 1) if direction == "left" else (1, 0)
     start = time.ticks_ms()
-    # Start continuous turn
+    ## Start continuous turn
     set_motor_speed(speed, left_dir, speed, right_dir)
+
+    # Check initial state - if either sensor is on the line, wait until both are OFF
+    sensor_state = sensors.read_all_sensors()
+    need_to_leave_line = sensor_state[1] == 1 or sensor_state[2] == 1
+
+    sensors_off_line = not need_to_leave_line  # If neither sensor on line initially, skip this step
+
     try:
-        while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
-            s = sensor_read_func()
-            if s[1] == 1 and s[2] == 1:
-                stop_motors()
-                return True
-            # small sleep to yield CPU and avoid busy-wait
-            time.sleep_ms(10)
+        # First, if we started on a line, wait until both sensors are OFF the line
+        if need_to_leave_line:
+            while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
+                sensor_state = sensors.read_all_sensors()
+                if sensor_state[1] == 0 and sensor_state[2] == 0:
+                    sensors_off_line = True
+                    break
+                time.sleep_ms(10)
+
+        # Then, wait until both sensors are back ON the line
+        if sensors_off_line:
+            while time.ticks_diff(time.ticks_ms(), start) < timeout_ms:
+                sensor_state = sensors.read_all_sensors()
+                if sensor_state[1] == 1 and sensor_state[2] == 1:
+                    stop_motors()
+                    return True
+                time.sleep_ms(10)
     finally:
         stop_motors()
     return False
-
-def set_motor_speed(left_speed, left_dir, right_speed, right_dir):
-    # Apply correction, min/max, and set direction and PWM for both motors
-    for side, speed, dir_pin, pwm, corr in [
-        ("left", left_speed, left_dir_pin, left_pwm, ROBOT_CONFIG.LEFT_MOTOR_CORRECTION),
-        ("right", right_speed, right_dir_pin, right_pwm, ROBOT_CONFIG.RIGHT_MOTOR_CORRECTION)
-    ]:
-        val = int(speed * corr)
-        if val > 0 and val < ROBOT_CONFIG.MIN_SPEED:
-            val = ROBOT_CONFIG.MIN_SPEED
-        val = min(255, val)
-        dir_pin.value(left_dir if side == "left" else right_dir)
-        pwm.duty_u16(int(val * 65535 / 255))
-
-
-def stop_motors():
-    left_pwm.duty_u16(0)
-    right_pwm.duty_u16(0)
-
-
-def move(speed=None, direction=1, duration_ms=None):
-    """Move forward (direction=1) or backward (direction=0)"""
-    speed = speed if speed is not None else ROBOT_CONFIG.BASE_SPEED
-    set_motor_speed(speed, direction, speed, direction)
-    if duration_ms:
-        time.sleep_ms(duration_ms)
-        stop_motors()
-
-
-def move_forward(speed=None, duration_ms=None):
-    move(speed, 1, duration_ms)
-
-
-def move_backward(speed=None, duration_ms=None):
-    move(speed, 0, duration_ms)
 
 
 def turn(angle=90, clockwise=True, speed=None):
@@ -95,6 +69,34 @@ def turn_right(angle=90, speed=None):
 
 def turn_left(angle=90, speed=None):
     turn(angle, False, speed)
+
+
+
+
+def set_motor_speed(left_speed, left_dir, right_speed, right_dir):
+    ## Apply correction, min/max, and set direction and PWM for both motors
+    for side, speed, dir_pin, pwm, corr in [
+        ("left", left_speed, left_dir_pin, left_pwm, ROBOT_CONFIG.LEFT_MOTOR_CORRECTION),
+        ("right", right_speed, right_dir_pin, right_pwm, ROBOT_CONFIG.RIGHT_MOTOR_CORRECTION)
+    ]:
+        val = int(speed * corr)
+        if val > 0 and val < ROBOT_CONFIG.MIN_SPEED:
+            val = ROBOT_CONFIG.MIN_SPEED
+        val = min(255, val)
+        dir_pin.value(left_dir if side == "left" else right_dir)
+        pwm.duty_u16(int(val * 65535 / 255))
+
+def stop_motors():
+    left_pwm.duty_u16(0)
+    right_pwm.duty_u16(0)
+
+def move(speed=255, direction=1, duration_ms=None):
+    """Move forward (direction=1) or backward (direction=0)"""
+    speed = speed if speed is not None else ROBOT_CONFIG.BASE_SPEED
+    set_motor_speed(speed, direction, speed, direction)
+    if duration_ms:
+        time.sleep_ms(duration_ms)
+        stop_motors()
 
 if __name__ == "__main__":
     print("Testing motor functions...")
