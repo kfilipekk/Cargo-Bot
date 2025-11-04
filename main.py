@@ -218,7 +218,7 @@ def main():
     follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
     execute_turn("left")
 
-    # Point 2- MOVING TO 3 and 4 for movebackto start functions- line
+    ############### Point 2- MOVING TO 3 and 4 for movebackto start functions- line
     follow_line_until_intersections(1, sensor_index=0, debounce_ms=200)
     leds.turn_on_flashing_led()
 
@@ -228,7 +228,7 @@ def main():
     print("\n[Point 3] Checking for box at Point 3...")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=5)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
 
     if result is not None:
         row, rack = result
@@ -284,7 +284,7 @@ def main():
         line_follower.follow_line_pid()
 
     execute_turn("left")
-    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=5)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
 
     if result is not None:
         row, rack = result
@@ -344,7 +344,7 @@ def main():
 
 
 ## points 5 and 6 still need to be tested at the moment, should be mirrored!
-# Point- MOVING TO 5 and 6 for movebackto start functions- line
+################## Point- MOVING TO 5 and 6 for movebackto start functions- line
 
     print("\n[Navigation] No boxes on left, checking right side...")
     execute_turn("left")
@@ -357,7 +357,7 @@ def main():
     execute_turn("right")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=7, scan_direction="right")
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=7, scan_direction="right")
 
     if result is not None:
         row, rack = result
@@ -419,7 +419,7 @@ def main():
     print("\n[Point 6] Checking for box at Point 6...")
     execute_turn("right")
 
-    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=7, scan_direction="right")
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=7, scan_direction="right")
 
     if result is not None:
         row, rack = result

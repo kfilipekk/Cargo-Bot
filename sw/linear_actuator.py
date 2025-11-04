@@ -145,8 +145,6 @@ def test_actuator():
         sleep(2)
 
 
-
-
         print("Stopping for 2 seconds")
 
         actuator.stop()
