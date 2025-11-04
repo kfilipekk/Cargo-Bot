@@ -71,8 +71,7 @@ def follow_line_until_distance(target_distance_mm):
     while distance_to_box is None or distance_to_box > target_distance_mm:
         line_follower.follow_line_pid()
         distance_to_box = sensors.get_tmf8701_distance()
-        # Optional: add a small delay to avoid spamming the sensor
-        utime.sleep_ms(10)
+        # Optional: add a small delay to avoid spamming the sensor)
 
     motor_functions.stop_motors()
     print(f"\n\n[Navigation] Reached target distance: {distance_to_box}mm")
@@ -85,7 +84,7 @@ def follow_line_for_duration(duration_ms):
         line_follower.follow_line_pid()
 
 
-def collect_box(scan_for_qr=False, initial_turn_angle=10, scan_steps=10):
+def collect_box(scan_for_qr=False, initial_turn_angle=20, scan_steps=15):
     """
     Collect a box, optionally scanning for QR code first.
 
@@ -130,19 +129,19 @@ def collect_box(scan_for_qr=False, initial_turn_angle=10, scan_steps=10):
     # Approach the box using VL53L0X sensor (more reliable for box detection)
     print("[Collect] Approaching box...")
     distance_to_box = sensors.get_vl53l0x_distance()
-    target_distance = 5  # Stop when directly in front of the box (<50mm)
+    target_distance = 100  # Stop when directly in front of the box (<50mm)
 
     while distance_to_box is not None and distance_to_box > target_distance:
-        line_follower.run_line_follower(mode='pid', debug=False)
+        line_follower.follow_line_pid()
         distance_to_box = sensors.get_vl53l0x_distance()
         utime.sleep_ms(10)  # Small delay to avoid sensor spam
 
     print(f"\n[Collect] Box reached at {distance_to_box}mm, moving forward to pick up box...")
-    # No additional forward movement needed - already directly in front
+    motor_functions.move(speed=255, direction=1, duration_ms=500)
 
     print("\n[Collect] Activating lift mechanism - lifting for 50ms")
-    linear_actuator.actuator.move(linear_actuator.EXTEND_DIRECTION, 100)  # Lift at full speed
-    utime.sleep_ms(50)  # Lift for 50ms
+    linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
+    utime.sleep_ms(1000)
     linear_actuator.actuator.stop()
 
     print("\n[Collect] Turning left 90 degrees")
@@ -206,7 +205,7 @@ def main():
     # Point 4
     print("\n[Point 4] Checking for box at Point 4...")
     execute_turn("left")
-    motor_functions.turn_left(5)
+    motor_functions.turn_left(20)
     code = sensors.get_tiny_code()
     print(f"\n[Point 4] QR Code: {code}")
     if code is not None and code != "No QR code detected":
