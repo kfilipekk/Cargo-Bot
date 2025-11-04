@@ -84,6 +84,25 @@ def follow_line_for_duration(duration_ms):
         line_follower.follow_line_pid()
 
 
+def return_to_start_from_rack_a(row):
+    """Return to start position from Rack A after dropping off a box"""
+    follow_line_for_duration(200)
+    follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+    execute_turn("left")
+    follow_line_for_duration(400)
+    follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
+    ###POINT OF MOVING TO 5 and 6
+
+def return_to_start_from_rack_b(row):
+    """Return to start position from Rack B after dropping off a box"""
+    follow_line_for_duration(200)
+    follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+    execute_turn("right")
+    follow_line_for_duration(400)
+    follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
+    ###POINT OF MOVING TO 3 and 4
+
+
 def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_direction="left"):
     """
     Collect a box, optionally scanning for QR code first.
@@ -199,9 +218,10 @@ def main():
     follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
     execute_turn("left")
 
-    # Point 2
+    # Point 2- MOVING TO 3 and 4 for movebackto start functions- line
     follow_line_until_intersections(1, sensor_index=0, debounce_ms=200)
     leds.turn_on_flashing_led()
+
 
     # Point 3
     execute_turn("left")
@@ -232,6 +252,8 @@ def main():
             ##LINEAR ACTUATOR
             print("WHOOOO")
             utime.sleep(444)
+            # Return to start
+            return_to_start_from_rack_a(row)
 
         elif rack == "Rack B":
             execute_turn("right")
@@ -242,6 +264,8 @@ def main():
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             ##LINEAR ACTUATOR
+            # Return to start
+            return_to_start_from_rack_b(row)
     else:
         # No QR detected, turn 30 degrees left before execute_turn
         print("[Point 3] No QR detected, turning 30 degrees left before execute_turn")
@@ -278,6 +302,8 @@ def main():
             ##LINEAR ACTUATOR
             print("WHOOOO")
             utime.sleep(444)
+            # Return to start
+            return_to_start_from_rack_a(row)
 
         elif rack == "Rack B":
             follow_line_for_duration(500)
@@ -293,6 +319,8 @@ def main():
             execute_turn("left")
 
             ##LINEAR ACTUATOR
+            # Return to start
+            return_to_start_from_rack_b(row)
     else:
         # No QR detected, turn 30 degrees left before execute_turn
         print("[Point 4] No QR detected, turning 30 degrees left before execute_turn")
@@ -316,7 +344,7 @@ def main():
 
 
 ## points 5 and 6 still need to be tested at the moment, should be mirrored!
-
+# Point- MOVING TO 5 and 6 for movebackto start functions- line
 
     print("\n[Navigation] No boxes on left, checking right side...")
     execute_turn("left")
@@ -354,6 +382,8 @@ def main():
             ##LINEAR ACTUATOR
             print("WHOOOO")
             utime.sleep(444)
+            # Return to start
+            return_to_start_from_rack_a(row)
 
 
         elif rack == "Rack B":
@@ -366,6 +396,8 @@ def main():
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("left")
             ##LINEAR ACTUATOR
+            # Return to start
+            return_to_start_from_rack_b(row)
     else:
         # No QR detected, turn 30 degrees right before execute_turn
         print("[Point 5] No QR detected, turning 30 degrees right before execute_turn")
@@ -405,6 +437,8 @@ def main():
             ##LINEAR ACTUATOR
             print("WHOOOO")
             utime.sleep(444)
+            # Return to start
+            return_to_start_from_rack_b(row)
 
         elif rack == "Rack A":
             follow_line_for_duration(500)
@@ -420,6 +454,8 @@ def main():
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             ##LINEAR ACTUATOR
+            # Return to start
+            return_to_start_from_rack_a(row)
     else:
         # No QR detected, turn 30 degrees right before execute_turn
         print("[Point 6] No QR detected, turning 30 degrees right before execute_turn")
