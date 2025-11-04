@@ -84,14 +84,15 @@ def follow_line_for_duration(duration_ms):
         line_follower.follow_line_pid()
 
 
-def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=20):
+def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_direction="left"):
     """
     Collect a box, optionally scanning for QR code first.
 
     Args:
-        scan_for_qr: If True, scans left incrementally to find QR code
+        scan_for_qr: If True, scans incrementally to find QR code
         initial_turn_angle: Initial turn angle before scanning
         scan_steps: Number of scanning steps
+        scan_direction: Direction to scan - "left" or "right"
 
     Returns:
         row: The target row from QR code, or None if no box found during scan
@@ -101,15 +102,25 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=20):
     # Optional QR code scanning
     code = None
     if scan_for_qr:
-        print("[Collect] Scanning for QR code...")
-        motor_functions.turn_left(initial_turn_angle)
-        for i in range(scan_steps):
-            utime.sleep_ms(400)
-            motor_functions.turn_left(i)
-            code = sensors.get_tiny_code()
-            if code is not None and code != "No QR code detected":
-                print(f"[Collect] QR code found: {code}")
-                break
+        print(f"[Collect] Scanning for QR code ({scan_direction})...")
+        if scan_direction == "left":
+            motor_functions.turn_left(initial_turn_angle)
+            for i in range(scan_steps):
+                utime.sleep_ms(400)
+                motor_functions.turn_left(i)
+                code = sensors.get_tiny_code()
+                if code is not None and code != "No QR code detected":
+                    print(f"[Collect] QR code found: {code}")
+                    break
+        else:  # scan_direction == "right"
+            motor_functions.turn_right(initial_turn_angle)
+            for i in range(scan_steps):
+                utime.sleep_ms(400)
+                motor_functions.turn_right(i)
+                code = sensors.get_tiny_code()
+                if code is not None and code != "No QR code detected":
+                    print(f"[Collect] QR code found: {code}")
+                    break
 
         # If no QR code found during scan, return None
         if code is None or code == "No QR code detected":
@@ -189,7 +200,7 @@ def main():
     print("\n[Point 3] Checking for box at Point 3...")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=5)
 
     if result is not None:
         row, rack = result
@@ -223,6 +234,10 @@ def main():
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             ##LINEAR ACTUATOR
+    else:
+        # No QR detected, turn 30 degrees left before execute_turn
+        print("[Point 3] No QR detected, turning 30 degrees left before execute_turn")
+        motor_functions.turn_right(30)
 
     row = None
     rack = None
@@ -237,7 +252,7 @@ def main():
         line_follower.follow_line_pid()
 
     execute_turn("left")
-    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=5)
 
     if result is not None:
         row, rack = result
@@ -270,6 +285,10 @@ def main():
             execute_turn("left")
 
             ##LINEAR ACTUATOR
+    else:
+        # No QR detected, turn 30 degrees left before execute_turn
+        print("[Point 4] No QR detected, turning 30 degrees left before execute_turn")
+        motor_functions.turn_left(30)
 
 
 
@@ -293,7 +312,7 @@ def main():
 
     print("\n[Navigation] No boxes on left, checking right side...")
     execute_turn("left")
-    follow_line_for_duration(500)
+    follow_line_for_duration(1000)
     follow_line_until_intersections(3, sensor_index=3, debounce_ms=300)
 
 
@@ -302,7 +321,7 @@ def main():
     execute_turn("right")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=7, scan_direction="right")
 
     if result is not None:
         row, rack = result
@@ -316,11 +335,11 @@ def main():
             line_follower.follow_line_pid()
 
         if rack == "Rack A":
+            execute_turn("left")
+            follow_line_for_duration(500)
+            follow_line_until_intersections(3, sensor_index=0, debounce_ms=200)
             execute_turn("right")
             follow_line_for_duration(500)
-            while sensor_state[3] != 1:
-                line_follower.follow_line_pid()
-            execute_turn("left")
             print(f"\n[Point 5] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
@@ -328,15 +347,21 @@ def main():
             print("WHOOOO")
             utime.sleep(444)
 
+
         elif rack == "Rack B":
-            execute_turn("left")
-            follow_line_for_duration(500)
-            follow_line_until_intersections(3, sensor_index=0, debounce_ms=200)
             execute_turn("right")
+            follow_line_for_duration(500)
+            while sensor_state[0] != 1:
+                line_follower.follow_line_pid()
+            follow_line_for_duration(500)
             print(f"\n[Point 5] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
-            execute_turn("right")
+            execute_turn("left")
             ##LINEAR ACTUATOR
+    else:
+        # No QR detected, turn 30 degrees right before execute_turn
+        print("[Point 5] No QR detected, turning 30 degrees right before execute_turn")
+        motor_functions.turn_left(30)
 
 
 
@@ -354,17 +379,17 @@ def main():
     print("\n[Point 6] Checking for box at Point 6...")
     execute_turn("right")
 
-    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=7, scan_direction="right")
 
     if result is not None:
         row, rack = result
         print(f"\n[Point 6] Box collected, Rack: {rack}, Target row: {row}")
 
         # Navigate to drop-off (reversed for right side)
-        motor_functions.turn_right(90)
-        execute_turn("right")
+        motor_functions.turn_left(90)
+        execute_turn("left")
         ##going back, north on point 6
-        if rack == "Rack A":
+        if rack == "Rack B":
             follow_line_for_duration(2000)
             print(f"\n[Point 6] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
@@ -373,7 +398,7 @@ def main():
             print("WHOOOO")
             utime.sleep(444)
 
-        elif rack == "Rack B":
+        elif rack == "Rack A":
             follow_line_for_duration(500)
             while sensor_state[0] != 1:
                 line_follower.follow_line_pid()
@@ -382,10 +407,15 @@ def main():
 
             follow_line_until_intersections(4, sensor_index=0, debounce_ms=200)
             execute_turn("right")
+            follow_line_for_duration(500)
             print(f"\n[Point 6] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             ##LINEAR ACTUATOR
+    else:
+        # No QR detected, turn 30 degrees right before execute_turn
+        print("[Point 6] No QR detected, turning 30 degrees right before execute_turn")
+        motor_functions.turn_right(30)
 
     execute_turn("right")
     follow_line_for_duration(500)

@@ -140,8 +140,8 @@ def test_actuator():
 
         print("Extending for 2 seconds")
 
-        actuator.move(RETRACT_DIRECTION, 30)
-        #actuator.move(EXTEND_DIRECTION, 30)
+        #actuator.move(RETRACT_DIRECTION, 30)
+        actuator.move(EXTEND_DIRECTION, 80)
         sleep(2)
 
 
