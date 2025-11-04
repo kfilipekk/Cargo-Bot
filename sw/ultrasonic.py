@@ -27,12 +27,10 @@ def ultrasonic_distance():
 
     return distance
 
-while True:
+if __name__ == "__main__":
+    while True:
         ultrasonic_distance()
-        ultrasonic_distance.sleep(1)
-
-distance = ultrasonic_distance()
-print("Ultrasonic distance:", distance)
+        utime.sleep(1)
 
 
 

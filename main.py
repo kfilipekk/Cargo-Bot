@@ -1,5 +1,5 @@
 
-from sw import motor_functions, line_follower, sensors, leds
+from sw import motor_functions, line_follower, sensors, leds, linear_actuator
 from sw.sensors import sensor_state
 import utime
 import _thread
@@ -9,14 +9,14 @@ utime.sleep(0.2)
 
 
 def execute_turn(direction):
-    print(f"\n[Turn] Executing turn: {direction}")
+    print(f"\n\n[Turn] Executing turn: {direction}")
     for key in line_follower.pid_state:
         if key != "turn_end_time":
             line_follower.pid_state[key] = 0.0
     motor_functions.turn_until_line_on_sensors(direction)
     # Mark the time when turn completes for post-turn boost
     line_follower.pid_state["turn_end_time"] = utime.ticks_ms()
-    print(f"[Turn] Turn {direction} complete")
+    print(f"\n[Turn] Turn {direction} complete")
 
     # Post-turn recovery: only if one center sensor is off after turn
     utime.sleep_ms(20)  # Brief settle time
@@ -55,10 +55,27 @@ def follow_line_until_intersections(target_count, sensor_index=0, debounce_ms=20
         line_follower.follow_line_pid()
         if sensor_state[sensor_index] == 1 and utime.ticks_ms() - start_time > debounce_ms:
             count += 1
-            print(f"\n[Navigation] Passed intersection {count}/{target_count}")
+            print(f"\n\n[Navigation] Passed intersection {count}/{target_count}")
             start_time = utime.ticks_ms()
 
     return count
+
+
+def follow_line_until_distance(target_distance_mm):
+    """Follow the line until the distance sensor reads less than the target distance."""
+    distance_to_box = sensors.get_tmf8701_distance()
+    # Add a small delay to allow the sensor to get a stable reading
+    utime.sleep_ms(50)
+    distance_to_box = sensors.get_tmf8701_distance()
+
+    while distance_to_box is None or distance_to_box > target_distance_mm:
+        line_follower.follow_line_pid()
+        distance_to_box = sensors.get_tmf8701_distance()
+        # Optional: add a small delay to avoid spamming the sensor
+        utime.sleep_ms(10)
+
+    motor_functions.stop_motors()
+    print(f"\n\n[Navigation] Reached target distance: {distance_to_box}mm")
 
 
 def follow_line_for_duration(duration_ms):
@@ -68,18 +85,66 @@ def follow_line_for_duration(duration_ms):
         line_follower.follow_line_pid()
 
 
-def collect_box():
-    print("\n[Collect] Approaching box...")
-    distance_to_box = sensors.get_tmf8701_distance()
-    code = sensors.get_tiny_code().split(",")
-    row = code[2]
+def collect_box(scan_for_qr=False, initial_turn_angle=10, scan_steps=10):
+    """
+    Collect a box, optionally scanning for QR code first.
+
+    Args:
+        scan_for_qr: If True, scans left incrementally to find QR code
+        initial_turn_angle: Initial turn angle before scanning
+        scan_steps: Number of scanning steps
+
+    Returns:
+        row: The target row from QR code, or None if no box found during scan
+    """
+    print("\n\n[Collect] Starting collection...")
+
+    # Optional QR code scanning
+    code = None
+    if scan_for_qr:
+        print("[Collect] Scanning for QR code...")
+        motor_functions.turn_left(initial_turn_angle)
+        for i in range(scan_steps):
+            utime.sleep_ms(300)
+            motor_functions.turn_left(i)
+            code = sensors.get_tiny_code()
+            if code is not None and code != "No QR code detected":
+                print(f"[Collect] QR code found: {code}")
+                break
+
+        # If no QR code found during scan, return None
+        if code is None or code == "No QR code detected":
+            print("[Collect] No QR code detected during scan, aborting collection")
+            return None
+    else:
+        code = sensors.get_tiny_code()
+
+    # Parse QR code for row information
+    if code and code != "No QR code detected":
+        code_parts = code.split(",")
+        row = code_parts[2].strip() if len(code_parts) > 2 else "1"
+    else:
+        row = "1"  # Default row if no QR code
     print(f"\n[Collect] QR Code: {code}, Target row: {row}")
 
-    while distance_to_box is not None and distance_to_box > 0:
-        line_follower.run_line_follower(mode='pid', debug=False)
+    # Approach the box using VL53L0X sensor (more reliable for box detection)
+    print("[Collect] Approaching box...")
+    distance_to_box = sensors.get_vl53l0x_distance()
+    target_distance = 5  # Stop when directly in front of the box (<50mm)
 
-    print("\n[Collect] Box reached, activating lift mechanism")
-    ## Lift up mechanism?
+    while distance_to_box is not None and distance_to_box > target_distance:
+        line_follower.run_line_follower(mode='pid', debug=False)
+        distance_to_box = sensors.get_vl53l0x_distance()
+        utime.sleep_ms(10)  # Small delay to avoid sensor spam
+
+    print(f"\n[Collect] Box reached at {distance_to_box}mm, moving forward to pick up box...")
+    # No additional forward movement needed - already directly in front
+
+    print("\n[Collect] Activating lift mechanism - lifting for 50ms")
+    linear_actuator.actuator.move(linear_actuator.EXTEND_DIRECTION, 100)  # Lift at full speed
+    utime.sleep_ms(50)  # Lift for 50ms
+    linear_actuator.actuator.stop()
+
     print("\n[Collect] Turning left 90 degrees")
     motor_functions.turn_left(90)
     execute_turn("left")
@@ -108,15 +173,12 @@ def main():
 
     # Point 3
     execute_turn("left")
-    print("\n[Point 3] Fine-tuning turn left 6 degrees")
-    motor_functions.turn_left(6)
     print("\n[Point 3] Checking for box at Point 3...")
 
-    distance_to_box = sensors.get_tmf8701_distance()
-    print(f"\n[Point 3] Distance to box: {distance_to_box}mm")
-    if distance_to_box is not None and distance_to_box < 100:
-        print("\n[Point 3] Box detected! Collecting...")
-        row = collect_box()
+    # Scan for QR code and collect if found
+    row = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
+
+    if row is not None:
         print(f"\n[Point 3] Box collected, target row: {row}")
         motor_functions.move(speed=255, direction=0, duration_ms=1000)
         execute_turn("left")
@@ -134,6 +196,7 @@ def main():
 
     print("\n[Point 3->4] Moving to Point 4...")
     print("\n[Point 3->4] Turning right 40 degrees")
+    motor_functions.turn_right(40)
     execute_turn("right")
     follow_line_for_duration(300)
     while sensor_state[0] != 1:
@@ -144,9 +207,9 @@ def main():
     print("\n[Point 4] Checking for box at Point 4...")
     execute_turn("left")
     motor_functions.turn_left(5)
-    distance_to_box = sensors.get_tmf8701_distance()
-    print(f"\n[Point 4] Distance to box: {distance_to_box}mm")
-    if distance_to_box is not None and distance_to_box < 100:
+    code = sensors.get_tiny_code()
+    print(f"\n[Point 4] QR Code: {code}")
+    if code is not None and code != "No QR code detected":
         print("\n[Point 4] Box detected! Collecting...")
         collect_box()
 
@@ -164,9 +227,9 @@ def main():
     print("\n[Point 5] Checking for box at Point 5...")
     execute_turn("right")
     motor_functions.turn_right(5)
-    distance_to_box = sensors.get_tmf8701_distance()
-    print(f"\n[Point 5] Distance to box: {distance_to_box}mm")
-    if distance_to_box is not None and distance_to_box < 200:
+    code = sensors.get_tiny_code()
+    print(f"\n[Point 5] QR Code: {code}")
+    if code is not None and code != "No QR code detected":
         print("\n[Point 5] Box detected! Collecting...")
         collect_box()
 
@@ -179,9 +242,9 @@ def main():
     # Point 6
     print("\n[Point 6] Checking for box at Point 6...")
     execute_turn("right")
-    distance_to_box = sensors.get_tmf8701_distance()
-    print(f"\n[Point 6] Distance to box: {distance_to_box}mm")
-    if distance_to_box is not None and distance_to_box < 200:
+    code = sensors.get_tiny_code()
+    print(f"\n[Point 6] QR Code: {code}")
+    if code is not None and code != "No QR code detected":
         print("\n[Point 6] Box detected! Collecting...")
         collect_box()
 
@@ -204,8 +267,13 @@ if __name__ == "__main__":
     button_pin = 28
     button = Pin(button_pin, Pin.IN, Pin.PULL_DOWN)
 
-    # Start the sensor update thread
-    _thread.start_new_thread(sensors.sensor_update_thread, ())
+    # Start the unified sensor thread (I2C sensors + line sensors)
+    try:
+        _thread.start_new_thread(sensors.run_all_sensors, ())
+        print("Sensor thread started (I2C + line sensors)")
+    except OSError as e:
+        print(f"Sensor thread already running: {e}")
+
     utime.sleep(2)
 
     # Safety parameters - set MAX_RUNTIME_MS to limit run time (None = run indefinitely)

@@ -34,12 +34,6 @@ def follow_line_pid():
         error = -1
     elif s[2]:
         error = 1
-    elif s[0]:
-        # Far left sensor - need strong left correction
-        error = -2
-    elif s[3]:
-        # Far right sensor - need strong right correction
-        error = 2
     else:
         error = pid_state["last_error"]
         pid_state["integral"] *= 0.5
