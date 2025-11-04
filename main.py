@@ -288,19 +288,7 @@ def main():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+## points 5 and 6 still need to be tested at the moment, should be mirrored!
 
 
     print("\n[Navigation] No boxes on left, checking right side...")
@@ -309,18 +297,52 @@ def main():
     follow_line_until_intersections(3, sensor_index=3, debounce_ms=300)
 
 
-
-
-
     # Point 5
     print("\n[Point 5] Checking for box at Point 5...")
     execute_turn("right")
-    motor_functions.turn_right(5)
-    code = sensors.get_tiny_code()
-    print(f"\n[Point 5] QR Code: {code}")
-    if code is not None and code != "No QR code detected":
-        print("\n[Point 5] Box detected! Collecting...")
-        collect_box()
+
+    # Scan for QR code and collect if found
+    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
+
+    if result is not None:
+        row, rack = result
+        print(f"\n[Point 5] Box collected, Rack: {rack}, Target row: {row}")
+
+        # Navigate to drop-off (reversed for right side)
+        motor_functions.turn_right(90)
+        execute_turn("right")
+        follow_line_for_duration(500)
+        while sensor_state[3] != 1:
+            line_follower.follow_line_pid()
+
+        if rack == "Rack A":
+            execute_turn("right")
+            follow_line_for_duration(500)
+            while sensor_state[3] != 1:
+                line_follower.follow_line_pid()
+            execute_turn("left")
+            print(f"\n[Point 5] Navigating to row {row}...")
+            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            execute_turn("left")
+            ##LINEAR ACTUATOR
+            print("WHOOOO")
+            utime.sleep(444)
+
+        elif rack == "Rack B":
+            execute_turn("left")
+            follow_line_for_duration(500)
+            follow_line_until_intersections(3, sensor_index=0, debounce_ms=200)
+            execute_turn("right")
+            print(f"\n[Point 5] Navigating to row {row}...")
+            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            execute_turn("right")
+            ##LINEAR ACTUATOR
+
+
+
+
+    row = None
+    rack = None
 
     print("\n[Point 5->6] Moving to Point 6...")
     execute_turn("left")
@@ -331,11 +353,39 @@ def main():
     # Point 6
     print("\n[Point 6] Checking for box at Point 6...")
     execute_turn("right")
-    code = sensors.get_tiny_code()
-    print(f"\n[Point 6] QR Code: {code}")
-    if code is not None and code != "No QR code detected":
-        print("\n[Point 6] Box detected! Collecting...")
-        collect_box()
+
+    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
+
+    if result is not None:
+        row, rack = result
+        print(f"\n[Point 6] Box collected, Rack: {rack}, Target row: {row}")
+
+        # Navigate to drop-off (reversed for right side)
+        motor_functions.turn_right(90)
+        execute_turn("right")
+        ##going back, north on point 6
+        if rack == "Rack A":
+            follow_line_for_duration(2000)
+            print(f"\n[Point 6] Navigating to row {row}...")
+            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            execute_turn("left")
+            ##LINEAR ACTUATOR
+            print("WHOOOO")
+            utime.sleep(444)
+
+        elif rack == "Rack B":
+            follow_line_for_duration(500)
+            while sensor_state[0] != 1:
+                line_follower.follow_line_pid()
+            execute_turn("left")
+            follow_line_for_duration(500)
+
+            follow_line_until_intersections(4, sensor_index=0, debounce_ms=200)
+            execute_turn("right")
+            print(f"\n[Point 6] Navigating to row {row}...")
+            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            execute_turn("right")
+            ##LINEAR ACTUATOR
 
     execute_turn("right")
     follow_line_for_duration(500)
@@ -345,6 +395,9 @@ def main():
     follow_line_until_intersections(2, sensor_index=0, debounce_ms=300)
     execute_turn("left")
     print("\n=== Routine complete ===")
+
+
+
 
 
 if __name__ == "__main__":
