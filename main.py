@@ -103,6 +103,9 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
     code = None
     if scan_for_qr:
         print(f"[Collect] Scanning for QR code ({scan_direction})...")
+        sensors.enable_qr_scanning()  # Enable QR scanning only when needed
+        utime.sleep_ms(100)  # Brief delay to allow first scan
+
         if scan_direction == "left":
             motor_functions.turn_left(initial_turn_angle)
             for i in range(scan_steps):
@@ -122,12 +125,17 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
                     print(f"[Collect] QR code found: {code}")
                     break
 
+        sensors.disable_qr_scanning()  # Disable QR scanning after we're done
+
         # If no QR code found during scan, return None
         if code is None or code == "No QR code detected":
             print("[Collect] No QR code detected during scan, aborting collection")
             return None
     else:
+        sensors.enable_qr_scanning()
+        utime.sleep_ms(200)  # Allow time for one scan
         code = sensors.get_tiny_code()
+        sensors.disable_qr_scanning()
 
     # Parse QR code for row and rack information
     rack = None

@@ -14,10 +14,28 @@ i2c_bus = I2C(id=0, scl=Pin(17), sda=Pin(16), freq=400000)  ## I2C0 on GP16 & GP
 last_qr_code = None
 last_tmf8701_distance = None
 last_vl53l0x_distance = None
+qr_scanning_enabled = False  # Control flag for QR code scanning
 
 def get_tiny_code():
     """Get the latest QR code reading from the background sensor thread"""
     return last_qr_code
+
+def enable_qr_scanning():
+    """Enable QR code scanning in the background thread"""
+    global qr_scanning_enabled
+    from sw import leds
+    qr_scanning_enabled = True
+    leds.turn_on_red_led()
+    print("[QR Scanner] Enabled")
+
+def disable_qr_scanning():
+    """Disable QR code scanning in the background thread"""
+    global qr_scanning_enabled, last_qr_code
+    from sw import leds
+    qr_scanning_enabled = False
+    last_qr_code = "No QR code detected"
+    leds.turn_off_red_led()
+    print("[QR Scanner] Disabled")
 
 def get_tmf8701_distance():
     """Get the latest TMF8701 distance reading from the background sensor thread"""
@@ -58,13 +76,14 @@ def run_all_sensors():
     line_sensor_counter = 0
 
     while True:
-        # Poll TinyCodeReader (less frequently)
-        tiny_code_counter += 1
-        if tiny_code_counter >= int(TinyCodeReader.TINY_CODE_READER_DELAY / 0.1):
-            code = tiny_code_reader.poll()
-            if code is not None:
-                last_qr_code = code
-            tiny_code_counter = 0
+        # Poll TinyCodeReader only if scanning is enabled
+        if qr_scanning_enabled:
+            tiny_code_counter += 1
+            if tiny_code_counter >= int(TinyCodeReader.TINY_CODE_READER_DELAY / 0.1):
+                code = tiny_code_reader.poll()
+                if code is not None:
+                    last_qr_code = code
+                tiny_code_counter = 0
 
         # Poll TMF8701
         if tof.is_data_ready():
