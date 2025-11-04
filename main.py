@@ -104,7 +104,7 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=20):
         print("[Collect] Scanning for QR code...")
         motor_functions.turn_left(initial_turn_angle)
         for i in range(scan_steps):
-            utime.sleep_ms(300)
+            utime.sleep_ms(400)
             motor_functions.turn_left(i)
             code = sensors.get_tiny_code()
             if code is not None and code != "No QR code detected":
@@ -154,6 +154,24 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=20):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def main():
     print("\n=== Starting main routine ===")
     utime.sleep(0.5)
@@ -171,7 +189,7 @@ def main():
     print("\n[Point 3] Checking for box at Point 3...")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=9)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
 
     if result is not None:
         row, rack = result
@@ -192,17 +210,10 @@ def main():
             print(f"\n[Point 3] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
-            motor_functions.move(speed=255, direction=1, duration_ms=200)
-            linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
-            utime.sleep_ms(1000)
-            motor_functions.move(speed=255, direction=1, duration_ms=300)
-            linear_actuator.actuator.move(linear_actuator.EXTEND_DIRECTION, 100)
-            utime.sleep_ms(1000)
-            motor_functions.move(speed=255, direction=1, duration_ms=300)
-            linear_actuator.actuator.move(linear_actuator.EXTEND_DIRECTION, 100)
-            utime.sleep_ms(1000)
+            ##LINEAR ACTUATOR
             print("WHOOOO")
             utime.sleep(444)
+
         elif rack == "Rack B":
             execute_turn("right")
             follow_line_for_duration(500)
@@ -211,31 +222,87 @@ def main():
             print(f"\n[Point 3] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
+            ##LINEAR ACTUATOR
 
     row = None
     rack = None
 
 
+
+
     print("\n[Point 3->4] Moving to Point 4...")
-    print("\n[Point 3->4] Turning right 40 degrees")
-    motor_functions.turn_right(40)
     execute_turn("right")
     follow_line_for_duration(500)
     while sensor_state[0] != 1:
         line_follower.follow_line_pid()
 
-
-    # Point 4
-    print("\n[Point 4] Checking for box at Point 4...")
     execute_turn("left")
-    motor_functions.turn_left(20)
-    code = sensors.get_tiny_code()
-    print(f"\n[Point 4] QR Code: {code}")
-    if code is not None and code != "No QR code detected":
-        print("\n[Point 4] Box detected! Collecting...")
-        collect_box()
+    result = collect_box(scan_for_qr=True, initial_turn_angle=2, scan_steps=10)
 
-    # If no boxes on the left, check right side
+    if result is not None:
+        row, rack = result
+        print(f"\n[Point 4] Box collected, Rack: {rack}, Target row: {row}")
+
+        # Only navigate to drop-off if it's Rack A
+        motor_functions.turn_left(90)
+        execute_turn("left")
+        ##going back, north on point 4
+        if rack == "Rack A":
+            follow_line_for_duration(2000)
+            print(f"\n[Point 4] Navigating to row {row}...")
+            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            execute_turn("right")
+            ##LINEAR ACTUATOR
+            print("WHOOOO")
+            utime.sleep(444)
+
+        elif rack == "Rack B":
+            follow_line_for_duration(500)
+            while sensor_state[3] != 1:
+                line_follower.follow_line_pid()
+            execute_turn("right")
+            follow_line_for_duration(500)
+
+            follow_line_until_intersections(4, sensor_index=3, debounce_ms=200)
+            execute_turn("left")
+            print(f"\n[Point 3] Navigating to row {row}...")
+            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            execute_turn("left")
+
+            ##LINEAR ACTUATOR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     print("\n[Navigation] No boxes on left, checking right side...")
     execute_turn("left")
     follow_line_for_duration(500)
