@@ -84,7 +84,7 @@ def follow_line_for_duration(duration_ms):
         line_follower.follow_line_pid()
 
 
-def collect_box(scan_for_qr=False, initial_turn_angle=20, scan_steps=15):
+def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=20):
     """
     Collect a box, optionally scanning for QR code first.
 
@@ -139,21 +139,14 @@ def collect_box(scan_for_qr=False, initial_turn_angle=20, scan_steps=15):
     print(f"\n[Collect] Box reached at {distance_to_box}mm, moving forward to pick up box...")
     motor_functions.move(speed=255, direction=1, duration_ms=500)
 
-    print("\n[Collect] Activating lift mechanism - lifting for 50ms")
-    linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
+    print("\n[Collect] Activating lift mechanism - lifting for 1000ms")
+    #linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
     utime.sleep_ms(1000)
     linear_actuator.actuator.stop()
-
-    print("\n[Collect] Turning left 90 degrees")
-    motor_functions.turn_left(90)
-    execute_turn("left")
-
-    print("\n[Collect] Turning around, heading back...")
-    while sensor_state[0] != 1 and sensor_state[3] != 1:
-        line_follower.run_line_follower(mode='pid', debug=False)
-    motor_functions.stop_motors()
     print("\n[Collect] Collection complete")
     return row
+
+
 
 
 
@@ -175,12 +168,17 @@ def main():
     print("\n[Point 3] Checking for box at Point 3...")
 
     # Scan for QR code and collect if found
-    row = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
+    row = collect_box(scan_for_qr=True, initial_turn_angle=4, scan_steps=7)
 
     if row is not None:
         print(f"\n[Point 3] Box collected, target row: {row}")
-        motor_functions.move(speed=255, direction=0, duration_ms=1000)
+        motor_functions.turn_left(90)
         execute_turn("left")
+        follow_line_for_duration(500)
+        while sensor_state[0] != 1:
+            line_follower.follow_line_pid()
+        execute_turn("left")
+        follow_line_for_duration(500)
         while sensor_state[0] != 1:
             line_follower.follow_line_pid()
         execute_turn("right")
@@ -190,6 +188,8 @@ def main():
         execute_turn("right")
         motor_functions.move(speed=255, direction=1, duration_ms=500)
 
+    row = None
+
 
 
 
@@ -197,7 +197,7 @@ def main():
     print("\n[Point 3->4] Turning right 40 degrees")
     motor_functions.turn_right(40)
     execute_turn("right")
-    follow_line_for_duration(300)
+    follow_line_for_duration(500)
     while sensor_state[0] != 1:
         line_follower.follow_line_pid()
 
@@ -234,7 +234,7 @@ def main():
 
     print("\n[Point 5->6] Moving to Point 6...")
     execute_turn("left")
-    follow_line_for_duration(300)
+    follow_line_for_duration(500)
     while sensor_state[3] != 1:
         line_follower.follow_line_pid()
 
