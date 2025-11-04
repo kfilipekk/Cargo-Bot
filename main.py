@@ -255,9 +255,404 @@ def main():
     follow_line_until_intersections(2, sensor_index=0, debounce_ms=300)
     execute_turn("left")
     print("\n=== Routine complete ===")
+actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
 
+#---------------------------------------KibAndChe-------------------------------------
+#---------------------------------------KibAndChe-------------------------------------
+
+
+
+
+print("hellow orld")
+
+
+
+
+actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
+
+
+
+
+
+
+
+
+sensorArr = [0, 0, 0, 0]
+rollList = ["", "", "", "", "", "", ""]
+
+
+
+
+map = ["A1", "A2", "A3", "A4", "A5", "A6", "LB1T", "LB2", "S8", "LB3", "LB4T",
+       "B1", "B2", "B3", "B4", "B5", "B6"]
+
+
+
+
+turnsAnti = [1, 1, 1, 1, 1, 1, 0, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1]
+turnsClock = [-1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 0, -1, -1, -1, -1, -1, -1]
+turns = [turnsAnti, turnsClock]
+
+
+
+
+pointer = 8
+dest = 9
+dir = 0  # 0 anticlockwise, 1 clockwise
+upper = False
+loadingBays = [6, 7, 9, 10]
+loadingBaysList = [6, 7, 10]
+pathViewToggle = False
+
+
+
+
+def decide_movement(sensorArr):
+    if sensorArr == [1, 1, 1, 1]:
+        return "S"
+    elif sensorArr == [1, 0, 0, 1]:
+        return "LR"
+    elif sensorArr == [1, 1, 1, 0]:
+        return "SL"
+    elif sensorArr == [0, 1, 1, 1]:
+        return "SR"
+    elif sensorArr == [0, 1, 1, 0]:
+        return "S"
+    elif sensorArr == [0, 0, 1, 0]:
+        return "S"
+    elif sensorArr == [0, 1, 0, 0]:
+        return "S"
+    elif sensorArr == [1, 0, 0, 0]:
+        return "L"
+    elif sensorArr == [0, 0, 0, 1]:
+        return "R"
+    elif sensorArr == [0, 0, 0, 0]:
+        return "party"
+    elif sensorArr == [1, 1, 0, 0]:
+        return "AL"
+    elif sensorArr == [0, 0, 1, 1]:
+        return "AR"
+    elif sensorArr == [1, 0, 1, 0]:
+        return "AR"
+    elif sensorArr == [0, 1, 0, 1]:
+        return "AL"
+    elif sensorArr == [1, 0, 1, 1]:
+        return "AR"
+    elif sensorArr == [1, 1, 0, 1]:
+        return "AL"
+    else:
+        return "party"
+
+
+
+
+def nav():
+    global pointer, pathViewToggle, dir, dest, loadingBaysList, loadingBays
+    TurnToggles = [True,True]
+    # 6,10 toggles
+
+
+
+
+    # Point 1
+    follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
+    execute_turn("right")
+
+
+
+
+    def LoadingBayCheck():
+        global loadingBaysList, dest
+        if pointer <= 7:
+            dest = loadingBaysList.pop(0)
+        else:
+            dest = loadingBaysList.pop(-1)
+        if  loadingBaysList == []:
+            loadingBaysList = loadingBays.copy()
+    #Detects the "closest" losfing bay and sets dest to it, removes from list so not to go again
+    # resets list if it leaves it empty
+
+
+
+
+    while True:
+        print(pointer, dest, dir)
+        line_follower.follow_line_pid()
+
+
+
+
+        rollListUpdate()
+        all_equal = len(set(rollList[-3:])) == 1
+        lastElm = rollList[-1]
+
+
+
+
+        if all_equal and lastElm != "S" and pathViewToggle:
+            pointer += [1, -1][dir]
+            pathViewToggle = False
+        elif all_equal and lastElm == "S":
+            pathViewToggle = True
+
+
+
+
+        if pointer == dest:
+            print("I AM DEST")
+            if turns[dir][pointer] != 0:
+                execute_turn(["right", "left"][(turns[dir][pointer] + 1) // 2])
+
+
+
+
+            if pointer in (9, 10, 7, 6):
+                follow_line_for_duration(0)
+                result = collect_box(scan_for_qr=True, initial_turn_angle=3, scan_steps=5)
+
+
+                if result is not None:
+                    row, rack = result
+                    print(f"\n[Point 3] Box collected, Rack: {rack}, Target row: {row}")
+                    motor_functions.turn_left(90)
+                    execute_turn("left")
+                    follow_line_for_duration(500)
+                    while sensor_state[0] != 1:
+                        line_follower.follow_line_pid()
+
+
+                    rack_map = {
+                        (1, "Rack A"): 0,
+                        (2, "Rack A"): 1,
+                        (3, "Rack A"): 2,
+                        (4, "Rack A"): 3,
+                        (5, "Rack A"): 4,
+                        (6, "Rack A"): 5,
+                        (1, "Rack B"): 11,
+                        (2, "Rack B"): 12,
+                        (3, "Rack B"): 13,
+                        (4, "Rack B"): 14,
+                        (5, "Rack B"): 15,
+                        (6, "Rack B"): 16,
+                    }
+                    dest = rack_map[int(row),rack]
+
+
+                #Loading bay
+                #scan qr code for box
+                #if bay is empty
+                    # LoadingBayCheck()
+                #else
+                    #pick up box
+                if turns[dir][pointer] != 0:
+                    execute_turn(["right", "left"][(turns[dir][pointer] + 1) // 2])
+                pass
+            elif pointer in (0,1,2,3,4,5,11,12,13,14,15,16):
+                #Storage bay
+                #Store box in upper or lower rack based on 'upper' variable
+                LoadingBayCheck()
+            elif pointer == 8:
+                #Station
+                #move back into starting box
+                pass
+
+
+
+
+            if dest > pointer:
+                dir = 0
+            else:
+                dir = 1
+
+
+
+
+            utime.sleep(5)
+
+
+
+
+
+
+            # dest = 12
+
+
+
+
+
+
+
+
+        if pointer == 6 and TurnToggles[0]:
+            execute_turn(["left", "right"][dir])
+            print("I AM TUNRNED6")
+            TurnToggles[0] = False
+        elif pointer == 10 and TurnToggles[1]:
+            execute_turn(["left", "right"][dir])
+            print("I AM TUNRNED10")
+            TurnToggles[1] = False
+        if pointer != 6 and pointer != 10:
+            TurnToggles = [True, True]
+
+
+
+
+
+
+
+
+
+
+
+
+def rollListUpdate():
+    global rollList
+    input_val = decide_movement(sensor_state)
+    rollList.append(input_val)
+    rollList.pop(0)
+
+
+
+
+
+
+
+
+def testNav():
+    pass
+
+
+#---------------------------------------Unloading------------------------------------
+def carrying():
+    actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
+    actuator.move(1, 100)  # Lift at full speed
+    utime.sleep_ms(1000)
+    actuator.stop()
+    utime.sleep_ms(3000)
+    actuator.move(0, 100)  # Lift at full speed
+    utime.sleep_ms(1000)
+    actuator.stop()
+    # actuator.move(0, 50)  # Lift at full speed
+    # utime.sleep_ms(1000)
+    # actuator.stop()
+    # print("unloading")
+    # utime.sleep_ms(1000)
+    # actuator.move(0, 100)  # Lower at full speed
+    # utime.sleep_ms(5000)
+    # actuator.stop()
+
+def unloadingL():
+    actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
+    actuator.move(1, 100)  # Lift at full speed
+    utime.sleep_ms(1600)
+    actuator.stop()
+    utime.sleep_ms(3000)
+
+    actuator.move(0, 100)  # Lift at full speed
+    utime.sleep_ms(400)
+    actuator.stop()
+    utime.sleep_ms(3000)
+
+    actuator.move(1, 100)  # Lift at full speed
+    utime.sleep_ms(400)
+    actuator.stop()
+
+    utime.sleep_ms(3000)
+    actuator.move(0, 100)  # Lift at full speed
+    utime.sleep_ms(1600)
+    actuator.stop()
+    # actuator.move(0, 50)  # Lift at full speed
+    # utime.sleep_ms(1000)
+    # actuator.stop()
+    # print("unloading")
+    # utime.sleep_ms(1000)
+    # actuator.move(0, 100)  # Lower at full speed
+    # utime.sleep_ms(5000)
+    # actuator.stop()
+
+def unloadingU():
+    actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
+    actuator.move(1, 100)  # Lift at full speed
+    utime.sleep_ms(5250)
+    actuator.stop()
+    utime.sleep_ms(3000)
+
+    actuator.move(0, 100)  # Lift at full speed
+    utime.sleep_ms(400)
+    actuator.stop()
+    utime.sleep_ms(3000)
+
+    actuator.move(1, 100)  # Lift at full speed
+    utime.sleep_ms(400)
+    actuator.stop()
+
+    utime.sleep_ms(3000)
+    actuator.move(0, 100)  # Lift at full speed
+    utime.sleep_ms(5250)
+    actuator.stop()
+    # actuator.move(0, 50)  # Lift at full speed
+    # utime.sleep_ms(1000)
+    # actuator.stop()
+    # print("unloading")
+    # utime.sleep_ms(1000)
+    # actuator.move(0, 100)  # Lower at full speed
+    # utime.sleep_ms(5000)
+    # actuator.stop()
+
+def line_to_rack_movement():
+    follow_line_for_duration(400)
+    motor_functions.stop_motors()
+
+def unloading_lower_level():
+    actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
+    print("unloading")
+    actuator.move(1, 100)  # Lift at full speed
+    utime.sleep_ms(1600)
+    print("done smth")
+    actuator.stop()
+    #forklift goes from neutral to L1 height
+    # We have no sensors so just move forward for a set time
+
+def return_from_lower_rack_to_mid():
+    actuator = linear_actuator.Actuator(dir_pin=0, pwm_pin=1)
+    actuator.move(0, 100)  # Lift at full speed
+    utime.sleep_ms(1400)
+    actuator.stop()
+    #forklift goes from L1 height to neutral
+
+def unload_lower():
+    line_to_rack_movement()
+    unloading_lower_level()
+    follow_line_for_duration(450)
+    motor_functions.stop_motors()
+    actuator.move(0,100)
+    utime.sleep_ms(300)
+    print("before actuator stop")
+    actuator.stop()
+    print("after actuator stop")
+    motor_functions.move(speed=200, direction=0, duration_ms=700)
+    actuator.move(0,100)
+    utime.sleep_ms(1200)
+    actuator.stop()
+    # execute_turn("right")
+    # execute_turn("right")
+    # follow_line_for_duration(200)
+    motor_functions.stop_motors()
+
+
+#---------------------------------------End Unloading------------------------------------
+
+
+
+
+def fix_linear_actuator():
+    actuator.move(0,30) ####1 to go upwards with the crane
+    print("heleoeoel")
+    utime.sleep_ms(10000)
 
 if __name__ == "__main__":
+    #fix_linear_actuator()
+    #unload_lower()
     utime.sleep(0.4)
     print("Hello from main.py!")
     leds.turn_off_flashing_led()
@@ -282,7 +677,8 @@ if __name__ == "__main__":
     try:
         while True:
             if button.value() == 1:
-                main()
+                while True:
+                    nav()
 
             # Enforce optional runtime limit
             if MAX_RUNTIME_MS is not None and utime.ticks_diff(utime.ticks_ms(), start_ms) > MAX_RUNTIME_MS:
