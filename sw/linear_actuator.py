@@ -89,7 +89,7 @@ def calibrate_actuator():
 
     actuator.move(EXTEND_DIRECTION, 100)
 
-    sleep(3.0)  # Run for 10 seconds to ensure full extension
+    sleep(7.0)  # Run for 10 seconds to ensure full extension
 
     actuator.stop()
 
@@ -192,7 +192,7 @@ def lower_level_height():
 
     actuator.move(RETRACT_DIRECTION, 100)  # Move to L1
 
-    sleep(1.6)
+    sleep(1.3)
 
     actuator.stop()
 
@@ -224,7 +224,7 @@ def return_from_lower_rack_to_mid():
 
     actuator.move(EXTEND_DIRECTION, 100)
 
-    sleep(1.4)
+    sleep(1.1)
 
     actuator.stop()
 
@@ -300,7 +300,7 @@ def unload_lower(motor_functions, follow_line_for_duration, execute_turn, rack):
 
     actuator.move(EXTEND_DIRECTION, 100)
 
-    sleep(0.3)
+    sleep(0.5)
 
     print("[Unload Lower] Box lowered onto rack")
 
@@ -318,15 +318,17 @@ def unload_lower(motor_functions, follow_line_for_duration, execute_turn, rack):
 
     # Return to neutral height
 
-    actuator.move(EXTEND_DIRECTION, 100)
+    # actuator.move(EXTEND_DIRECTION, 100)
 
-    sleep(1.2)
+    # sleep(1.2)
 
-    actuator.stop()
+    # actuator.stop()
 
 
 
     motor_functions.stop_motors()
+
+    calibrate_actuator()
 
 
 
@@ -400,7 +402,7 @@ def unload_upper(motor_functions, follow_line_for_duration, execute_turn, rack):
 
     actuator.move(EXTEND_DIRECTION, 100)
 
-    sleep(0.3)
+    sleep(0.5)
 
     print("[Unload Upper] Box lowered onto rack")
 
@@ -418,15 +420,17 @@ def unload_upper(motor_functions, follow_line_for_duration, execute_turn, rack):
 
     # Return to neutral height
 
-    actuator.move(EXTEND_DIRECTION, 100)
+    # actuator.move(EXTEND_DIRECTION, 100)
 
-    sleep(6.0)
+    # sleep(6.0)
 
-    actuator.stop()
+    # actuator.stop()
 
 
 
     motor_functions.stop_motors()
+
+    calibrate_actuator()
 
 
 
