@@ -216,9 +216,9 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
     print(f"\n[Collect] Box reached at {distance_to_box}mm, moving forward to pick up box...")
     motor_functions.move(speed=255, direction=1, duration_ms=500)
 
-    print("\n[Collect] Activating lift mechanism - lifting for 1000ms")
+    print("\n[Collect] Activating lift mechanism - lifting for 500ms")
     linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
-    utime.sleep_ms(3000)
+    utime.sleep_ms(500)
     linear_actuator.actuator.stop()
     print("\n[Collect] Collection complete")
     return (row, rack)
