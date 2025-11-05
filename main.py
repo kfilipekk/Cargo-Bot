@@ -89,7 +89,7 @@ def follow_line_for_duration(duration_ms):
 def return_to_start_from_rack_a(row):
     """Return to start position from Rack A after dropping off a box"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(5 - row, sensor_index=0, debounce_ms=500)
+    follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
     execute_turn("left")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
@@ -99,7 +99,7 @@ def return_to_start_from_rack_a(row):
 def return_to_start_from_rack_b(row):
     """Return to start position from Rack B after dropping off a box"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(5 - row, sensor_index=3, debounce_ms=500)
+    follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
     execute_turn("right")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
@@ -317,7 +317,7 @@ def main():
                 line_follower.follow_line_pid()
             execute_turn("right")
             print(f"\n[Point 3] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -330,7 +330,7 @@ def main():
             follow_line_until_intersections(3, sensor_index=3, debounce_ms=200)
             execute_turn("left")
             print(f"\n[Point 3] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -367,7 +367,7 @@ def main():
         if rack == "Rack A":
             follow_line_for_duration(2000)
             print(f"\n[Point 4] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -384,7 +384,7 @@ def main():
             follow_line_until_intersections(4, sensor_index=3, debounce_ms=200)
             execute_turn("left")
             print(f"\n[Point 3] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -446,7 +446,7 @@ def main():
             execute_turn("right")
             follow_line_for_duration(500)
             print(f"\n[Point 5] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -461,7 +461,7 @@ def main():
                 line_follower.follow_line_pid()
             follow_line_for_duration(500)
             print(f"\n[Point 5] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -501,7 +501,7 @@ def main():
         if rack == "Rack B":
             follow_line_for_duration(2000)
             print(f"\n[Point 6] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -519,7 +519,7 @@ def main():
             execute_turn("right")
             follow_line_for_duration(500)
             print(f"\n[Point 6] Navigating to row {row}...")
-            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             # Unload at rack
             unload_at_rack(row, rack)
