@@ -594,6 +594,7 @@ def nav():
         return code
 
     def loadUp():
+        follow_line_for_duration(200)
         code = None
         for i in range(50):
             code = ScanForCode()
@@ -610,9 +611,11 @@ def nav():
             #Move forwards until forklift definitely in loading bay area hopefully it its pusshed on
             while sensor_state[0] != 1 and sensor_state[3] != 1:
                 line_follower.follow_line_pid()
+            actuator.move(1,100)
+            utime.sleep_ms(300)
 
             #Turning 180 from loading bay area
-            execute_turn("left")
+            motor_functions.turn_left(90)
             execute_turn("left")
 
             #Attempting to leave laoding bay area
@@ -640,9 +643,9 @@ def nav():
         else:
             motor_functions.turn_left(90)
             execute_turn("left")
-            while sensor_state[0] != 1 and sensor_state[3] != 1:
-                line_follower.follow_line_pid()
             loadingBayCheck()
+        while sensor_state[0] != 1 and sensor_state[3] != 1:
+                line_follower.follow_line_pid()
         #Note this returns the bot facing away from the bay ( opposite to orientation it began the sequence )
 
     def unloadDown():
@@ -689,6 +692,8 @@ def nav():
                     execute_turn(["right", "left"][(turns[1-dir][pointer]*-1 + 1) // 2])
                     execute_turn(["right", "left"][(turns[1-dir][pointer]*-1 + 1) // 2])
             elif pointer in (0,1,2,3,4,5,11,12,13,14,15,16):
+                actuator.move(0,100)
+                utime.sleep_ms(300)
                 #Storage bay
                 #Store box in upper or lower rack based on 'upper' variable
                 unloadDown()
