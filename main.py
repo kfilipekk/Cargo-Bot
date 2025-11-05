@@ -87,7 +87,7 @@ def follow_line_for_duration(duration_ms):
 def return_to_start_from_rack_a(row):
     """Return to start position from Rack A after dropping off a box"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+    follow_line_until_intersections(row-1, sensor_index=0, debounce_ms=500)
     execute_turn("left")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
@@ -97,7 +97,7 @@ def return_to_start_from_rack_a(row):
 def return_to_start_from_rack_b(row):
     """Return to start position from Rack B after dropping off a box"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+    follow_line_until_intersections(row-1, sensor_index=3, debounce_ms=500)
     execute_turn("right")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
@@ -267,7 +267,7 @@ def main():
     print("\n[Point 3] Checking for box at Point 3...")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10)
 
     if result is not None:
         row, rack = result
@@ -323,7 +323,7 @@ def main():
         line_follower.follow_line_pid()
 
     execute_turn("left")
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10)
 
     if result is not None:
         row, rack = result
@@ -395,7 +395,7 @@ def main():
     execute_turn("right")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=7, scan_direction="right")
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10, scan_direction="right")
 
     if result is not None:
         row, rack = result
@@ -457,7 +457,7 @@ def main():
     print("\n[Point 6] Checking for box at Point 6...")
     execute_turn("right")
 
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=7, scan_direction="right")
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10, scan_direction="right")
 
     if result is not None:
         row, rack = result
