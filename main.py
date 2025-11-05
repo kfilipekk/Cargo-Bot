@@ -7,6 +7,8 @@ from machine import Pin
 
 utime.sleep(0.2)
 
+# Global box counter
+boxes_collected = 0
 
 def execute_turn(direction):
     print(f"\n\n[Turn] Executing turn: {direction}")
@@ -182,10 +184,35 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
 
         sensors.disable_qr_scanning()  # Disable QR scanning after we're done
 
-        # If no QR code found after both sweeps, return None
+        # If no QR code found after both sweeps, check if we should continue
         if code is None or code == "No QR code detected":
-            print("[Collect] No QR code detected after scanning both directions, aborting collection")
-            return None
+            global boxes_collected
+            if boxes_collected >= 4:
+                print("[Collect] No QR code detected and 4 boxes already collected, aborting")
+                return None
+            else:
+                # Continue forward and keep scanning
+                print("[Collect] No QR code during sweep, moving forward and continuing scan...")
+                sensors.enable_qr_scanning()
+
+                # Move forward while scanning
+                forward_start = utime.ticks_ms()
+                while utime.ticks_diff(utime.ticks_ms(), forward_start) < 2000:  # Scan for 2 seconds while moving
+                    line_follower.follow_line_pid()
+                    code = sensors.get_tiny_code()
+                    if code is not None and code != "No QR code detected":
+                        print(f"[Collect] QR code found while moving forward: {code}")
+                        break
+                    utime.sleep_ms(50)
+
+                sensors.disable_qr_scanning()
+
+                # If still no code found, use default based on boxes collected
+                if code is None or code == "No QR code detected":
+                    # Decrement bay from 6 down to 3 (Bay 6, 5, 4, 3 for boxes 0, 1, 2, 3)
+                    default_bay = 6 - boxes_collected
+                    print(f"[Collect] No QR code found, using default: Rack A, Bay {default_bay}, Row 1")
+                    code = f"Rack A, Bay {default_bay}, 1"  # Default to Rack A with decrementing bay
     else:
         sensors.enable_qr_scanning()
         utime.sleep_ms(200)  # Allow time for one scan
@@ -220,7 +247,11 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
     linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
     utime.sleep_ms(500)
     linear_actuator.actuator.stop()
-    print("\n[Collect] Collection complete")
+
+    # Increment box counter
+    global boxes_collected
+    boxes_collected += 1
+    print(f"\n[Collect] Collection complete - Total boxes collected: {boxes_collected}/4")
     return (row, rack)
 
 
@@ -542,10 +573,12 @@ if __name__ == "__main__":
     try:
         while True:
             if button.value() == 1:
-                print("\n=== Starting main routine ===")
-                utime.sleep(0.5)
+                # Reset box counter at start of each run
+                boxes_collected = 0
 
-                # Point 1
+                print("\n=== Starting main routine ===")
+                print(f"[Init] Box counter reset: {boxes_collected}/4")
+                utime.sleep(0.5)                # Point 1
                 follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
                 execute_turn("left")
                 main()
