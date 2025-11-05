@@ -267,7 +267,7 @@ def main():
     print("\n[Point 3] Checking for box at Point 3...")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
 
     if result is not None:
         row, rack = result
@@ -286,7 +286,7 @@ def main():
                 line_follower.follow_line_pid()
             execute_turn("right")
             print(f"\n[Point 3] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -299,7 +299,7 @@ def main():
             follow_line_until_intersections(3, sensor_index=3, debounce_ms=200)
             execute_turn("left")
             print(f"\n[Point 3] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -323,7 +323,7 @@ def main():
         line_follower.follow_line_pid()
 
     execute_turn("left")
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10)
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=5)
 
     if result is not None:
         row, rack = result
@@ -336,7 +336,7 @@ def main():
         if rack == "Rack A":
             follow_line_for_duration(2000)
             print(f"\n[Point 4] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -348,12 +348,12 @@ def main():
             while sensor_state[3] != 1:
                 line_follower.follow_line_pid()
             execute_turn("right")
-            follow_line_for_duration(500)
+            follow_line_for_duration(700)
 
             follow_line_until_intersections(4, sensor_index=3, debounce_ms=200)
             execute_turn("left")
             print(f"\n[Point 3] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -395,7 +395,7 @@ def main():
     execute_turn("right")
 
     # Scan for QR code and collect if found
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10, scan_direction="right")
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=7, scan_direction="right")
 
     if result is not None:
         row, rack = result
@@ -415,7 +415,7 @@ def main():
             execute_turn("right")
             follow_line_for_duration(500)
             print(f"\n[Point 5] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -430,7 +430,7 @@ def main():
                 line_follower.follow_line_pid()
             follow_line_for_duration(500)
             print(f"\n[Point 5] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -457,7 +457,7 @@ def main():
     print("\n[Point 6] Checking for box at Point 6...")
     execute_turn("right")
 
-    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=10, scan_direction="right")
+    result = collect_box(scan_for_qr=True, initial_turn_angle=5, scan_steps=7, scan_direction="right")
 
     if result is not None:
         row, rack = result
@@ -470,7 +470,7 @@ def main():
         if rack == "Rack B":
             follow_line_for_duration(2000)
             print(f"\n[Point 6] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
             # Unload at rack
             unload_at_rack(row, rack)
@@ -488,7 +488,7 @@ def main():
             execute_turn("right")
             follow_line_for_duration(500)
             print(f"\n[Point 6] Navigating to row {row}...")
-            follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
+            follow_line_until_intersections(6 - row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
             # Unload at rack
             unload_at_rack(row, rack)
