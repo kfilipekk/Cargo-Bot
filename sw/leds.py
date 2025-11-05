@@ -2,6 +2,7 @@ from time import sleep
 from machine import I2C, Pin
 import _thread
 import utime
+
 red_led = Pin(26, Pin.OUT)
 yellow_led = Pin(22, Pin.OUT)
 
