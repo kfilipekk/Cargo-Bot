@@ -67,6 +67,56 @@ class Actuator:
 actuator = Actuator(dir_pin=0, pwm_pin=1)
 
 
+# --- Calibration Function ---
+
+def calibrate_actuator():
+
+    """
+
+    Calibration sequence: Fully extend the actuator, then retract for 1000ms.
+
+    This ensures the actuator starts from a known position.
+
+    """
+
+    print("\n[Calibration] Starting actuator calibration...")
+
+
+
+    # Fully extend the actuator (assuming this takes ~10 seconds to reach full extension)
+
+    print("[Calibration] Extending actuator to maximum...")
+
+    actuator.move(EXTEND_DIRECTION, 100)
+
+    sleep(3.0)  # Run for 10 seconds to ensure full extension
+
+    actuator.stop()
+
+    print("[Calibration] Actuator fully extended")
+
+
+
+    # Brief pause
+
+    sleep(0.5)
+
+
+
+    # Retract for 1000ms to set neutral position
+
+    print("[Calibration] Retracting for 1000ms to neutral position...")
+
+    actuator.move(RETRACT_DIRECTION, 100)
+
+    sleep(1.4)
+
+    actuator.stop()
+
+
+
+    print("[Calibration] Calibration complete - actuator at neutral position\n")
+
 
 # --- High-Level Functions ---
 
@@ -129,6 +179,282 @@ def lift_to_transport_height(speed=100):
     sleep(0.5) # Short duration, placeholder
 
     actuator.stop()
+
+
+
+# --- Rack Unloading Functions ---
+
+def lower_level_height():
+
+    """Move forklift from neutral to L1 (lower rack) height."""
+
+    print("Moving to lower level height...")
+
+    actuator.move(RETRACT_DIRECTION, 100)  # Move to L1
+
+    sleep(1.6)
+
+    actuator.stop()
+
+    print("Reached lower level height")
+
+
+
+def upper_level_height():
+
+    """Move forklift from L1 height to L2 (upper rack) height."""
+
+    print("Moving to upper level height...")
+
+    actuator.move(RETRACT_DIRECTION, 100)  # Move to L2
+
+    sleep(5.0)
+
+    actuator.stop()
+
+    print("Reached upper level height")
+
+
+
+def return_from_lower_rack_to_mid():
+
+    """Move forklift from L1 height back to neutral."""
+
+    print("Returning from lower rack to neutral...")
+
+    actuator.move(EXTEND_DIRECTION, 100)
+
+    sleep(1.4)
+
+    actuator.stop()
+
+    print("Returned to neutral height")
+
+
+
+def fix_linear_actuator():
+
+    """Manual adjustment function - moves actuator up slowly."""
+
+    print("Manual actuator adjustment...")
+
+    actuator.move(EXTEND_DIRECTION, 30)
+
+    sleep(10.0)
+
+    actuator.stop()
+
+
+
+# --- Complete Unloading Functions ---
+
+def line_to_rack_movement(motor_functions, follow_line_for_duration):
+
+    """Move from intersection to rack position."""
+
+    follow_line_for_duration(400)
+
+    motor_functions.stop_motors()
+
+
+
+def unload_lower(motor_functions, follow_line_for_duration, execute_turn, rack):
+
+    """
+
+    Complete unloading sequence for lower rack (L1).
+
+    Assumes starting at intersection facing the correct rack.
+
+    Returns at the same position.
+
+    rack: "Rack A" or "Rack B" to determine turn direction
+
+    """
+
+    print("\n[Unload Lower] Starting lower rack unload sequence...")
+
+
+
+    # Move to rack
+
+    line_to_rack_movement(motor_functions, follow_line_for_duration)
+
+
+
+    # Move to L1 height
+
+    lower_level_height()
+
+
+
+    # Move forward to rack
+
+    follow_line_for_duration(450)
+
+    motor_functions.stop_motors()
+
+
+
+    # Lower slightly to place box
+
+    actuator.move(EXTEND_DIRECTION, 100)
+
+    sleep(0.3)
+
+    print("[Unload Lower] Box lowered onto rack")
+
+    actuator.stop()
+
+
+
+    # Back away from rack
+
+    print("[Unload Lower] Backing away from rack")
+
+    motor_functions.move(speed=200, direction=0, duration_ms=700)
+
+
+
+    # Return to neutral height
+
+    actuator.move(EXTEND_DIRECTION, 100)
+
+    sleep(1.2)
+
+    actuator.stop()
+
+
+
+    motor_functions.stop_motors()
+
+
+
+    # Turn to get back on line
+
+    if rack == "Rack A":
+
+        print("[Unload Lower] Turning right to get back on line")
+
+        execute_turn("right")
+
+    elif rack == "Rack B":
+
+        print("[Unload Lower] Turning left to get back on line")
+
+        execute_turn("left")
+
+
+
+    # Follow line back to intersection
+
+    print("[Unload Lower] Following line back to intersection")
+
+    follow_line_for_duration(400)
+
+
+
+    print("[Unload Lower] Lower rack unload complete\n")
+
+
+
+def unload_upper(motor_functions, follow_line_for_duration, execute_turn, rack):
+
+    """
+
+    Complete unloading sequence for upper rack (L2).
+
+    Assumes starting at intersection facing the correct rack.
+
+    Returns at the same position.
+
+    rack: "Rack A" or "Rack B" to determine turn direction
+
+    """
+
+    print("\n[Unload Upper] Starting upper rack unload sequence...")
+
+
+
+    # Move to rack
+
+    line_to_rack_movement(motor_functions, follow_line_for_duration)
+
+
+
+    # Move to L2 height
+
+    upper_level_height()
+
+
+
+    # Move forward to rack
+
+    follow_line_for_duration(450)
+
+    motor_functions.stop_motors()
+
+
+
+    # Lower slightly to place box
+
+    actuator.move(EXTEND_DIRECTION, 100)
+
+    sleep(0.3)
+
+    print("[Unload Upper] Box lowered onto rack")
+
+    actuator.stop()
+
+
+
+    # Back away from rack
+
+    print("[Unload Upper] Backing away from rack")
+
+    motor_functions.move(speed=200, direction=0, duration_ms=700)
+
+
+
+    # Return to neutral height
+
+    actuator.move(EXTEND_DIRECTION, 100)
+
+    sleep(6.0)
+
+    actuator.stop()
+
+
+
+    motor_functions.stop_motors()
+
+
+
+    # Turn to get back on line
+
+    if rack == "Rack A":
+
+        print("[Unload Upper] Turning right to get back on line")
+
+        execute_turn("right")
+
+    elif rack == "Rack B":
+
+        print("[Unload Upper] Turning left to get back on line")
+
+        execute_turn("left")
+
+
+
+    # Follow line back to intersection
+
+    print("[Unload Upper] Following line back to intersection")
+
+    follow_line_for_duration(400)
+
+
+
+    print("[Unload Upper] Upper rack unload complete\n")
 
 
 

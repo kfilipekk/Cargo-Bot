@@ -91,6 +91,7 @@ def return_to_start_from_rack_a(row):
     execute_turn("left")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
+    main()
     ###POINT OF MOVING TO 5 and 6
 
 def return_to_start_from_rack_b(row):
@@ -100,6 +101,9 @@ def return_to_start_from_rack_b(row):
     execute_turn("right")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
+    motor_functions.turn_right(120)
+    execute_turn("right")
+    main()
     ###POINT OF MOVING TO 3 and 4
 
 
@@ -144,11 +148,43 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
                     print(f"[Collect] QR code found: {code}")
                     break
 
+        # If no QR code found, try sweeping in opposite direction
+        if code is None or code == "No QR code detected":
+            opposite_direction = "right" if scan_direction == "left" else "left"
+            print(f"[Collect] No QR found, trying opposite direction ({opposite_direction})...")
+
+            # Return to center first
+            if scan_direction == "left":
+                motor_functions.turn_right(initial_turn_angle + scan_steps)
+            else:
+                motor_functions.turn_left(initial_turn_angle + scan_steps)
+            utime.sleep_ms(200)
+
+            # Sweep in opposite direction
+            if opposite_direction == "left":
+                motor_functions.turn_left(initial_turn_angle)
+                for i in range(scan_steps):
+                    utime.sleep_ms(400)
+                    motor_functions.turn_left(i)
+                    code = sensors.get_tiny_code()
+                    if code is not None and code != "No QR code detected":
+                        print(f"[Collect] QR code found on second sweep: {code}")
+                        break
+            else:  # opposite_direction == "right"
+                motor_functions.turn_right(initial_turn_angle)
+                for i in range(scan_steps):
+                    utime.sleep_ms(400)
+                    motor_functions.turn_right(i)
+                    code = sensors.get_tiny_code()
+                    if code is not None and code != "No QR code detected":
+                        print(f"[Collect] QR code found on second sweep: {code}")
+                        break
+
         sensors.disable_qr_scanning()  # Disable QR scanning after we're done
 
-        # If no QR code found during scan, return None
+        # If no QR code found after both sweeps, return None
         if code is None or code == "No QR code detected":
-            print("[Collect] No QR code detected during scan, aborting collection")
+            print("[Collect] No QR code detected after scanning both directions, aborting collection")
             return None
     else:
         sensors.enable_qr_scanning()
@@ -182,23 +218,32 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
 
     print("\n[Collect] Activating lift mechanism - lifting for 1000ms")
     linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
-    utime.sleep_ms(1000)
+    utime.sleep_ms(3000)
     linear_actuator.actuator.stop()
     print("\n[Collect] Collection complete")
     return (row, rack)
 
 
+# --- Unloading Wrapper Functions ---
 
+def unload_at_rack(row_number, rack):
+    """
+    Unload box at specified rack row.
+    row_number: 1 = lower rack (L1), 2 = upper rack (L2)
+    rack: "Rack A" or "Rack B" to determine turn direction after unloading
 
-
-
-
-
-
-
-
-
-
+    Assumes: Robot is at intersection facing the correct rack.
+    Returns: Robot at same intersection position.
+    """
+    if row_number == 1:
+        print(f"\n[Unload] Unloading at {rack} lower rack (row {row_number})")
+        linear_actuator.unload_lower(motor_functions, follow_line_for_duration, execute_turn, rack)
+    elif row_number == 2:
+        print(f"\n[Unload] Unloading at {rack} upper rack (row {row_number})")
+        linear_actuator.unload_upper(motor_functions, follow_line_for_duration, execute_turn, rack)
+    else:
+        print(f"[Unload] Warning: Invalid row number {row_number}, defaulting to lower rack")
+        linear_actuator.unload_lower(motor_functions, follow_line_for_duration, execute_turn, rack)
 
 
 
@@ -211,12 +256,6 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
 
 
 def main():
-    print("\n=== Starting main routine ===")
-    utime.sleep(0.5)
-
-    # Point 1
-    follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
-    execute_turn("left")
 
     ############### Point 2- MOVING TO 3 and 4 for movebackto start functions- line
     follow_line_until_intersections(1, sensor_index=0, debounce_ms=200)
@@ -249,9 +288,8 @@ def main():
             print(f"\n[Point 3] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
-            ##LINEAR ACTUATOR
-            print("WHOOOO")
-            utime.sleep(444)
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_a(row)
 
@@ -263,7 +301,8 @@ def main():
             print(f"\n[Point 3] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
-            ##LINEAR ACTUATOR
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_b(row)
     else:
@@ -299,9 +338,8 @@ def main():
             print(f"\n[Point 4] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
-            ##LINEAR ACTUATOR
-            print("WHOOOO")
-            utime.sleep(444)
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_a(row)
 
@@ -317,8 +355,8 @@ def main():
             print(f"\n[Point 3] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
-
-            ##LINEAR ACTUATOR
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_b(row)
     else:
@@ -379,9 +417,8 @@ def main():
             print(f"\n[Point 5] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
-            ##LINEAR ACTUATOR
-            print("WHOOOO")
-            utime.sleep(444)
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_a(row)
 
@@ -395,7 +432,8 @@ def main():
             print(f"\n[Point 5] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("left")
-            ##LINEAR ACTUATOR
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_b(row)
     else:
@@ -434,9 +472,8 @@ def main():
             print(f"\n[Point 6] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=0, debounce_ms=500)
             execute_turn("left")
-            ##LINEAR ACTUATOR
-            print("WHOOOO")
-            utime.sleep(444)
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_b(row)
 
@@ -453,7 +490,8 @@ def main():
             print(f"\n[Point 6] Navigating to row {row}...")
             follow_line_until_intersections(row, sensor_index=3, debounce_ms=500)
             execute_turn("right")
-            ##LINEAR ACTUATOR
+            # Unload at rack
+            unload_at_rack(row, rack)
             # Return to start
             return_to_start_from_rack_a(row)
     else:
@@ -492,6 +530,11 @@ if __name__ == "__main__":
 
     utime.sleep(2)
 
+    # Calibrate the linear actuator at startup
+    print("\n=== Calibrating Linear Actuator ===")
+    linear_actuator.calibrate_actuator()
+    print("=== Calibration Complete ===\n")
+
     # Safety parameters - set MAX_RUNTIME_MS to limit run time (None = run indefinitely)
     MAX_RUNTIME_MS = 20000
     start_ms = utime.ticks_ms()
@@ -499,6 +542,12 @@ if __name__ == "__main__":
     try:
         while True:
             if button.value() == 1:
+                print("\n=== Starting main routine ===")
+                utime.sleep(0.5)
+
+                # Point 1
+                follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
+                execute_turn("left")
                 main()
 
             # Enforce optional runtime limit
