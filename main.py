@@ -565,6 +565,7 @@ def nav():
     execute_turn("right")
     #---------------------------
     def ScanForCode():
+        scan_steps = 7
         sensors.enable_qr_scanning()  # Enable QR scanning only when needed
         utime.sleep_ms(100)  # Brief delay to allow first scan
 
@@ -592,15 +593,15 @@ def nav():
 
         return code
 
-    def loadUP():
+    def loadUp():
         code = None
         for i in range(50):
             code = ScanForCode()
             follow_line_for_duration(50)
-            if code != None or "No QR code detected":
+            if code is not None and code != "No QR code detected":
                 break
 
-        if code is not None or "No QR code detected":
+        if code is not None and code != "No QR code detected":
             #Splitting up code into constituent parts and setting upper to True if necessary
             parts = code.split(",")  # ["Rack A", " Upper", " 5"]
             row, rack = int(parts[2].strip()), parts[0].strip()
