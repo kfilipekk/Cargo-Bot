@@ -12,9 +12,9 @@ def turn_off_red_led():
     red_led.value(0)
 
 def turn_on_flashing_led():
-    yellow_led.value(0)
+    yellow_led.value(1)
 
 def turn_off_flashing_led():
-    yellow_led.value(1)
+    yellow_led.value(0)
 
 

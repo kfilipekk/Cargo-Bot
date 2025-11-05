@@ -87,7 +87,7 @@ def follow_line_for_duration(duration_ms):
 def return_to_start_from_rack_a(row):
     """Return to start position from Rack A after dropping off a box"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(row-1, sensor_index=0, debounce_ms=500)
+    follow_line_until_intersections(5 - row, sensor_index=0, debounce_ms=500)
     execute_turn("left")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
@@ -97,7 +97,7 @@ def return_to_start_from_rack_a(row):
 def return_to_start_from_rack_b(row):
     """Return to start position from Rack B after dropping off a box"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(row-1, sensor_index=3, debounce_ms=500)
+    follow_line_until_intersections(5 - row, sensor_index=3, debounce_ms=500)
     execute_turn("right")
     follow_line_for_duration(400)
     follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
