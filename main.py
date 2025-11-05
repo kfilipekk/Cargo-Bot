@@ -245,7 +245,7 @@ def collect_box(scan_for_qr=False, initial_turn_angle=0, scan_steps=7, scan_dire
 
     print("\n[Collect] Activating lift mechanism - lifting for 500ms")
     linear_actuator.actuator.move(linear_actuator.RETRACT_DIRECTION, 100)  # Lift at full speed
-    utime.sleep_ms(500)
+    utime.sleep_ms(700)
     linear_actuator.actuator.stop()
 
     # Increment box counter
@@ -304,6 +304,8 @@ def main():
         row, rack = result
         print(f"\n[Point 3] Box collected, Rack: {rack}, Target row: {row}")
 
+        # Back up slightly after collecting box
+        motor_functions.move(speed=255, direction=0, duration_ms=300)
         # Only navigate to drop-off if it's Rack A
         motor_functions.turn_left(90)
         execute_turn("left")
@@ -360,6 +362,8 @@ def main():
         row, rack = result
         print(f"\n[Point 4] Box collected, Rack: {rack}, Target row: {row}")
 
+        # Back up slightly after collecting box
+        motor_functions.move(speed=255, direction=0, duration_ms=300)
         # Only navigate to drop-off if it's Rack A
         motor_functions.turn_left(90)
         execute_turn("left")
@@ -378,6 +382,8 @@ def main():
             follow_line_for_duration(500)
             while sensor_state[3] != 1:
                 line_follower.follow_line_pid()
+            # Back up slightly before turning
+            motor_functions.move(speed=255, direction=0, duration_ms=300)
             execute_turn("right")
             follow_line_for_duration(700)
 
@@ -432,6 +438,8 @@ def main():
         row, rack = result
         print(f"\n[Point 5] Box collected, Rack: {rack}, Target row: {row}")
 
+        # Back up slightly after collecting box
+        motor_functions.move(speed=255, direction=0, duration_ms=300)
         # Navigate to drop-off (reversed for right side)
         motor_functions.turn_right(90)
         execute_turn("right")
@@ -494,6 +502,8 @@ def main():
         row, rack = result
         print(f"\n[Point 6] Box collected, Rack: {rack}, Target row: {row}")
 
+        # Back up slightly after collecting box
+        motor_functions.move(speed=255, direction=0, duration_ms=300)
         # Navigate to drop-off (reversed for right side)
         motor_functions.turn_left(90)
         execute_turn("left")
