@@ -89,6 +89,12 @@ Cargo_Bot/
 └── support/               # Documentation and reference materials
 ```
 
+## Contributors
+
+- [kfilipekk](https://github.com/kfilipekk)
+- [aoj23](https://github.com/aoj23)
+- [ks2171](https://github.com/ks2171)
+
 <div align="center">
 
 Developed by [kfilipekk](https://github.com/kfilipekk)
