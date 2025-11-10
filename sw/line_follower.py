@@ -28,6 +28,7 @@ def follow_line_basic():
 def follow_line_pid():
     s = sensor_state
 
+    ##Calculate error from sensor readings: -1 = left of line, 0 = on line, 1 = right of line
     if not any(s):
         error = 0
         pid_state["integral"] *= 0.9
@@ -41,14 +42,16 @@ def follow_line_pid():
         error = pid_state["last_error"]
         pid_state["integral"] *= 0.5
 
+    ##Integral term accumulates error over time, clamped to prevent windup
     pid_state["integral"] = max(-ROBOT_CONFIG.PID_MAX_INTEGRAL,
                                 min(ROBOT_CONFIG.PID_MAX_INTEGRAL,
                                     pid_state["integral"] + error))
+    ##Derivative term smoothed with exponential filter to reduce noise
     raw_deriv = error - pid_state["last_error"]
     pid_state["filtered_derivative"] = (ROBOT_CONFIG.PID_ALPHA * raw_deriv +
                                         (1 - ROBOT_CONFIG.PID_ALPHA) * pid_state["filtered_derivative"])
 
-    ## Use boosted PID values right after turns
+    ##Use boosted PID values right after turns for faster line reacquisition
     time_since_turn = time.ticks_diff(time.ticks_ms(), pid_state["turn_end_time"])
     if time_since_turn < ROBOT_CONFIG.POST_TURN_BOOST_DURATION_MS:
         kp = ROBOT_CONFIG.POST_TURN_KP
@@ -59,10 +62,12 @@ def follow_line_pid():
         kd = ROBOT_CONFIG.PID_KD
         correction_factor = ROBOT_CONFIG.PID_CORRECTION_FACTOR
 
+    ##PID formula: P + I + D components combined and scaled
     correction = (kp * error + ROBOT_CONFIG.PID_KI * pid_state["integral"] +
                  kd * pid_state["filtered_derivative"]) * correction_factor
     pid_state["last_error"] = error
 
+    ##Apply correction to motor speeds: positive correction = turn right
     base = ROBOT_CONFIG.BASE_SPEED
     left = max(ROBOT_CONFIG.MIN_SPEED, min(255, int(base + correction)))
     right = max(ROBOT_CONFIG.MIN_SPEED, min(255, int(base - correction)))

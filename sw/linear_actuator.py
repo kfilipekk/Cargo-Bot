@@ -27,12 +27,14 @@ actuator = Actuator(dir_pin=0, pwm_pin=1)
 
 def calibrate_actuator():
     print("\n[Calibration] Starting actuator calibration...")
+    ##Full extension establishes known reference position
     print("[Calibration] Extending actuator to maximum...")
     actuator.move(EXTEND_DIRECTION, 100)
     sleep(7.0)
     actuator.stop()
     print("[Calibration] Actuator fully extended")
     sleep(0.5)
+    ##Partial retraction brings actuator to neutral starting position
     print("[Calibration] Retracting to neutral position...")
     actuator.move(RETRACT_DIRECTION, 100)
     sleep(1.4)

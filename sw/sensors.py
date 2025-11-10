@@ -7,7 +7,7 @@ from libs.tiny_code_reader.tiny_code_reader import TinyCodeReader
 from libs.DFRobot_TMF8x01.DFRobot_TMF8x01 import DFRobot_TMF8701
 from libs.VL53L0X.VL53L0X import VL53L0X
 
-i2c_bus = I2C(id=0, scl=Pin(17), sda=Pin(16), freq=400000)
+i2c_bus = I2C(0, scl=Pin(17), sda=Pin(16), freq=400000)
 
 last_qr_code = None
 last_tmf8701_distance = None
@@ -63,19 +63,22 @@ def run_all_sensors():
     last_qr_code = "No QR code detected"
 
     while True:
-        ## Only scan QR codes when enabled
+        ##Only scan QR codes when enabled to save processing time
         if qr_scanning_enabled:
             tiny_code_counter += 1
+            ##Poll QR reader at reduced frequency based on TINY_CODE_READER_DELAY
             if tiny_code_counter >= int(TinyCodeReader.TINY_CODE_READER_DELAY / 0.1):
                 code = tiny_code_reader.poll()
                 if code is not None:
                     last_qr_code = code
                 tiny_code_counter = 0
 
+        ## Poll ToF sensors and update line sensor state
         if tof.is_data_ready():
             last_tmf8701_distance = tof.get_distance_mm()
         last_vl53l0x_distance = vl53l0.read()
 
+        ##Update shared sensor state array for line following
         new_values = read_all_sensors()
         for i in range(4):
             sensor_state[i] = new_values[i]
