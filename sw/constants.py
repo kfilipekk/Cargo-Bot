@@ -1,5 +1,14 @@
 class RobotConfig:
     def __init__(self):
+        ## Hardware pins
+        self.BUTTON_PIN = 28
+
+        ## Sensor indices
+        self.LEFT_SENSOR = 0
+        self.CENTER_LEFT_SENSOR = 1
+        self.CENTER_RIGHT_SENSOR = 2
+        self.RIGHT_SENSOR = 3
+
         ## Motor speeds
         self.BASE_SPEED = 255
         self.TURN_SPEED = 100

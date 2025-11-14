@@ -1,6 +1,14 @@
+"""
+Cargo Bot - Main Navigation and Mission Control
+
+Autonomous cargo delivery robot that follows lines, scans QR codes,
+collects boxes, and delivers them to designated rack locations.
+Handles complete mission execution from initialization to box delivery.
+"""
 
 from sw import motor_functions, line_follower, sensors, leds, linear_actuator
 from sw.sensors import sensor_state
+from sw.constants import ROBOT_CONFIG
 import utime
 import _thread
 from machine import Pin
@@ -10,6 +18,7 @@ utime.sleep(0.2)
 boxes_collected = 0
 
 def execute_turn(direction):
+    """Execute a turn and handle post-turn sensor alignment recovery"""
     print(f"\n\n[Turn] Executing turn: {direction}")
 
     for key in line_follower.pid_state:
@@ -47,6 +56,7 @@ def execute_turn(direction):
 
 
 def follow_line_until_intersections(target_count, sensor_index=0, debounce_ms=200):
+    """Follow line and count intersections using specified outer sensor"""
     count = 0
     start_time = utime.ticks_ms()
 
@@ -61,24 +71,27 @@ def follow_line_until_intersections(target_count, sensor_index=0, debounce_ms=20
     return count
 
 def follow_line_for_duration(duration_ms):
+    """Follow line using PID control for specified duration"""
     start_time = utime.ticks_ms()
     while utime.ticks_diff(utime.ticks_ms(), start_time) < duration_ms:
         line_follower.follow_line_pid()
 
 def return_to_start_from_rack_a(row):
+    """Navigate from Rack A back to starting position after delivery"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
+    follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=500)
     execute_turn("left")
     follow_line_for_duration(400)
-    follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
+    follow_line_until_intersections(2, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
     main()
 
 def return_to_start_from_rack_b(row):
+    """Navigate from Rack B back to starting position after delivery"""
     follow_line_for_duration(200)
-    follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
+    follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
     execute_turn("right")
     follow_line_for_duration(400)
-    follow_line_until_intersections(2, sensor_index=3, debounce_ms=500)
+    follow_line_until_intersections(2, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
     motor_functions.turn_right(120)
     execute_turn("right")
     main()
@@ -201,65 +214,65 @@ def navigate_to_rack(rack, row, from_point):
 
         if from_point == 3:
             follow_line_for_duration(500)
-            while sensor_state[0] != 1:
+            while sensor_state[ROBOT_CONFIG.LEFT_SENSOR] != 1:
                 line_follower.follow_line_pid()
 
             if rack == "Rack A":
                 execute_turn("left")
                 follow_line_for_duration(500)
-                while sensor_state[0] != 1:
+                while sensor_state[ROBOT_CONFIG.LEFT_SENSOR] != 1:
                     line_follower.follow_line_pid()
                 execute_turn("right")
-                follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
                 execute_turn("right")
             else:  ## Rack B
                 execute_turn("right")
                 follow_line_for_duration(500)
-                follow_line_until_intersections(3, sensor_index=3, debounce_ms=200)
+                follow_line_until_intersections(3, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=200)
                 execute_turn("left")
-                follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=500)
                 execute_turn("left")
 
         else:  ## Point 4
             if rack == "Rack A":
                 follow_line_for_duration(2000)
-                follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
                 execute_turn("right")
             else:  ## Rack B
                 follow_line_for_duration(500)
-                while sensor_state[3] != 1:
+                while sensor_state[ROBOT_CONFIG.RIGHT_SENSOR] != 1:
                     line_follower.follow_line_pid()
                 motor_functions.move(speed=255, direction=0, duration_ms=300)
                 execute_turn("right")
                 follow_line_for_duration(700)
-                follow_line_until_intersections(4, sensor_index=3, debounce_ms=200)
+                follow_line_until_intersections(4, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=200)
                 execute_turn("left")
-                follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=500)
                 execute_turn("left")
 
     else:  ## Right side (points 5, 6)
         motor_functions.turn_right(90)
         execute_turn("right")
         follow_line_for_duration(500)
-        while sensor_state[3] != 1:
+        while sensor_state[ROBOT_CONFIG.RIGHT_SENSOR] != 1:
             line_follower.follow_line_pid()
 
         if from_point == 5:
             if rack == "Rack A":
                 execute_turn("left")
                 follow_line_for_duration(500)
-                follow_line_until_intersections(3, sensor_index=0, debounce_ms=200)
+                follow_line_until_intersections(3, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=200)
                 execute_turn("right")
                 follow_line_for_duration(500)
-                follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=500)
                 execute_turn("left")
             else:  ## Rack B
                 execute_turn("right")
                 follow_line_for_duration(500)
-                while sensor_state[0] != 1:
+                while sensor_state[ROBOT_CONFIG.LEFT_SENSOR] != 1:
                     line_follower.follow_line_pid()
                 follow_line_for_duration(500)
-                follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
                 execute_turn("left")
 
         else:  ## Point 6
@@ -268,18 +281,18 @@ def navigate_to_rack(rack, row, from_point):
 
             if rack == "Rack B":
                 follow_line_for_duration(2000)
-                follow_line_until_intersections(7 - row, sensor_index=0, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=500)
                 execute_turn("left")
             else:  ## Rack A
                 follow_line_for_duration(500)
-                while sensor_state[0] != 1:
+                while sensor_state[ROBOT_CONFIG.LEFT_SENSOR] != 1:
                     line_follower.follow_line_pid()
                 execute_turn("left")
                 follow_line_for_duration(500)
-                follow_line_until_intersections(4, sensor_index=0, debounce_ms=200)
+                follow_line_until_intersections(4, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=200)
                 execute_turn("right")
                 follow_line_for_duration(500)
-                follow_line_until_intersections(7 - row, sensor_index=3, debounce_ms=500)
+                follow_line_until_intersections(7 - row, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=500)
                 execute_turn("right")
 
     unload_at_rack(row, rack)
@@ -301,7 +314,7 @@ def process_collection_point(point_num, scan_direction="left"):
 
 def main():
     """Main navigation routine through all 4 collection points"""
-    follow_line_until_intersections(1, sensor_index=0, debounce_ms=200)
+    follow_line_until_intersections(1, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=200)
     leds.turn_on_flashing_led()
 
     ## Point 3 (left side, first)
@@ -312,7 +325,7 @@ def main():
     ## Point 4 (left side, second)
     execute_turn("right")
     follow_line_for_duration(500)
-    while sensor_state[0] != 1:
+    while sensor_state[ROBOT_CONFIG.LEFT_SENSOR] != 1:
         line_follower.follow_line_pid()
     execute_turn("left")
     if not process_collection_point(4):
@@ -321,7 +334,7 @@ def main():
     ## Point 5 (right side, first)
     execute_turn("left")
     follow_line_for_duration(1000)
-    follow_line_until_intersections(3, sensor_index=3, debounce_ms=300)
+    follow_line_until_intersections(3, sensor_index=ROBOT_CONFIG.RIGHT_SENSOR, debounce_ms=300)
     execute_turn("right")
     if not process_collection_point(5, scan_direction="right"):
         motor_functions.turn_left(30)
@@ -329,7 +342,7 @@ def main():
     ## Point 6 (right side, second)
     execute_turn("left")
     follow_line_for_duration(500)
-    while sensor_state[3] != 1:
+    while sensor_state[ROBOT_CONFIG.RIGHT_SENSOR] != 1:
         line_follower.follow_line_pid()
     execute_turn("right")
     if not process_collection_point(6, scan_direction="right"):
@@ -338,7 +351,7 @@ def main():
     ## Return to start
     execute_turn("right")
     follow_line_for_duration(500)
-    follow_line_until_intersections(2, sensor_index=0, debounce_ms=300)
+    follow_line_until_intersections(2, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=300)
     execute_turn("left")
 
 def initialize_robot():
@@ -361,13 +374,13 @@ def run_mission():
     boxes_collected = 0
 
     utime.sleep(0.5)
-    follow_line_until_intersections(2, sensor_index=0, debounce_ms=200)
+    follow_line_until_intersections(2, sensor_index=ROBOT_CONFIG.LEFT_SENSOR, debounce_ms=200)
     execute_turn("left")
     main()
 
 if __name__ == "__main__":
     initialize_robot()
-    button = Pin(28, Pin.IN, Pin.PULL_DOWN)
+    button = Pin(ROBOT_CONFIG.BUTTON_PIN, Pin.IN, Pin.PULL_DOWN)
 
     try:
         while True:
