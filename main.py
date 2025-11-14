@@ -32,22 +32,22 @@ def execute_turn(direction):
     utime.sleep_ms(20)
 
     ## Post-turn recovery if sensors aren't aligned
-    if sensor_state[1] == 1 and sensor_state[2] == 0:
+    if sensor_state[ROBOT_CONFIG.CENTER_LEFT_SENSOR] == 1 and sensor_state[ROBOT_CONFIG.CENTER_RIGHT_SENSOR] == 0:
         print("[Recovery] Right sensor off line, correcting right...")
         recovery_start = utime.ticks_ms()
         while utime.ticks_diff(utime.ticks_ms(), recovery_start) < 200:
-            if sensor_state[1] == 1 and sensor_state[2] == 1:
+            if sensor_state[ROBOT_CONFIG.CENTER_LEFT_SENSOR] == 1 and sensor_state[ROBOT_CONFIG.CENTER_RIGHT_SENSOR] == 1:
                 print("[Recovery] Line recovered")
                 break
             motor_functions.set_motor_speed(255, 1, 255, 0)
             utime.sleep_ms(10)
         motor_functions.stop_motors()
 
-    elif sensor_state[1] == 0 and sensor_state[2] == 1:
+    elif sensor_state[ROBOT_CONFIG.CENTER_LEFT_SENSOR] == 0 and sensor_state[ROBOT_CONFIG.CENTER_RIGHT_SENSOR] == 1:
         print("[Recovery] Left sensor off line, correcting left...")
         recovery_start = utime.ticks_ms()
         while utime.ticks_diff(utime.ticks_ms(), recovery_start) < 200:
-            if sensor_state[1] == 1 and sensor_state[2] == 1:
+            if sensor_state[ROBOT_CONFIG.CENTER_LEFT_SENSOR] == 1 and sensor_state[ROBOT_CONFIG.CENTER_RIGHT_SENSOR] == 1:
                 print("[Recovery] Line recovered")
                 break
             motor_functions.set_motor_speed(255, 0, 255, 1)
